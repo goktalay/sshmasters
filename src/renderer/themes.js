@@ -95,7 +95,7 @@ function themePreviewHtml(key) {
       <div><span style="color:${th.blue}">docs</span> <span style="color:${th.green}">run.sh</span> <span style="color:${th.red}">err.log</span></div>
       <div class="tp-sw">${sw}</div>
     </div>
-    <div class="tp-name">${esc(t.name)}</div>`;
+    <div class="tp-name">${esc(th.name)}</div>`;
 }
 
 // Palet ızgarası; seçilince onPick(key) çağrılır

@@ -27,13 +27,30 @@
   "build": {
     "appId": "com.sshmaster.app",
     "productName": "SSH Master",
-    "directories": { "output": "dist", "buildResources": "build" },
-    "files": ["src/**/*", "build/icon.png", "package.json"],
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "build/icon.png",
+      "package.json"
+    ],
     "win": {
       "icon": "build/icon.ico",
       "target": [
-        { "target": "nsis", "arch": ["x64"] },
-        { "target": "portable", "arch": ["x64"] }
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
       ]
     },
     "nsis": {
@@ -41,8 +58,12 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "shortcutName": "SSH Master"
+      "shortcutName": "SSH Master",
+      "include": "build/installer.nsh",
+      "menuCategory": "Mastertool"
     },
-    "portable": { "artifactName": "SSH-Master-Portable-${version}.exe" }
+    "portable": {
+      "artifactName": "SSH-Master-Portable-${version}.exe"
+    }
   }
 }

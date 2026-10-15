@@ -15,6 +15,8 @@ npm start
 npm run dist
 ```
 
+Kurulum varsayılan olarak `%LOCALAPPDATA%\Programs\Mastertool\SSH Master` (tüm kullanıcılar için `C:\Program Files\Mastertool\SSH Master`) klasörüne yapılır ve Başlat menüsünde **Mastertool › SSH Master** olarak görünür; eski klasördeki bir sürümden yükseltmede eski klasör temizlenir (`build/installer.nsh`).
+
 `dist/` altında kurulum (`SSH Master Setup x.y.z.exe`) ve taşınabilir (`SSH-Master-Portable-x.y.z.exe`) sürüm oluşur.
 
 > Not: NSIS 260 karakterden uzun yolları desteklemez. Proje çok derin bir klasördeyse kısa bir yola (ör. `C:\dev\ssh-master`) taşıyıp derleyin.

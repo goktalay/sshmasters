@@ -8,6 +8,7 @@ let data = { folders: [], connections: [], shortcuts: [], settings: {} };
 let currentFolder = null;
 let query = '';
 const selected = new Set(); // seçili bağlantı kimlikleri (Ctrl+tık ile çoklu)
+const IS_RTL = document.documentElement.dir === 'rtl';
 
 const $ = (s) => document.querySelector(s);
 
@@ -66,6 +67,79 @@ document.addEventListener('keydown', (e) => {
 
 window.api.onStoreChanged((d) => { data = d; render(); });
 window.api.getStore().then((d) => { data = d; render(); });
+
+// --- Hesap ve senkron durumu ---------------------------------------------------
+let acct = { loggedIn: false };
+
+function syncText(st) {
+  if (!st.syncEnabled || st.state === 'off') return t('sync.off');
+  if (st.state === 'syncing') return t('sync.syncing');
+  if (st.state === 'offline') return t('sync.offline');
+  if (st.state === 'error') {
+    if (st.error === 'decrypt_failed') return t('sync.errDecrypt');
+    if (st.error === 'too_large') return t('sync.errTooLarge');
+    return t('sync.error', { msg: st.errorMessage || st.error });
+  }
+  return st.lastSyncAt ? t('acct.lastSync', { time: formatDate(st.lastSyncAt) }) : t('acct.never');
+}
+
+function renderAccountChip() {
+  const b = $('#btnAccount');
+  const name = (acct.user && (acct.user.name || acct.user.email)) || acct.email || '?';
+  b.querySelector('.ac-avatar').textContent = name.trim().slice(0, 1).toUpperCase();
+  const st = !acct.syncEnabled || acct.state === 'off' ? 'off' : acct.state;
+  b.className = `account-chip s-${st}`;
+  b.querySelector('.ac-sync').innerHTML = st === 'syncing' ? '<span class="spin"></span>' : icon(['off', 'offline', 'error'].includes(st) ? 'cloudOff' : 'cloud');
+  b.title = `${(acct.user && acct.user.email) || acct.email || ''}\n${syncText(acct)}`;
+  const live = document.querySelector('#acct-status');
+  if (live) live.textContent = syncText(acct);
+}
+
+let lastErrorShown = null;
+window.api.onAccountStatus((st) => {
+  acct = st;
+  renderAccountChip();
+  // Kalıcı hatalar bir kez bildirilir
+  if (st.state === 'error' && st.error !== lastErrorShown) {
+    lastErrorShown = st.error;
+    toast(syncText(st), { type: 'err', timeout: 9000 });
+  }
+  if (st.state === 'ok') lastErrorShown = null;
+});
+window.api.accountState().then((st) => { acct = st; renderAccountChip(); });
+
+$('#btnAccount').onclick = (e) => {
+  const r = e.currentTarget.getBoundingClientRect();
+  contextMenu(IS_RTL ? r.left : r.right - 240, r.bottom + 6, [
+    { label: (acct.user && acct.user.email) || acct.email || '', icon: 'user', disabled: true, action: () => {} },
+    { label: syncText(acct), icon: acct.syncEnabled ? 'cloud' : 'cloudOff', disabled: true, action: () => {} },
+    '-',
+    { label: t('acct.syncNow'), icon: 'refresh', disabled: !acct.syncEnabled, action: () => window.api.syncNow() },
+    { label: t('acct.myAccount'), icon: 'open', action: () => window.api.openWeb('account') },
+    { label: t('app.settings'), icon: 'gear', action: openSettings },
+    '-',
+    { label: t('acct.logout'), icon: 'logout', danger: true, action: logout },
+  ]);
+};
+
+async function logout() {
+  const ok = await confirmBox(t('acct.logout'), esc(t('acct.logoutMsg')), { okText: t('acct.logout') });
+  if (ok) window.api.logout();
+}
+
+// Yeni sürüm bildirimi: exe yalnız hesabın kişiye özel bağlantısından indirilir
+window.api.onUpdateAvailable(({ version }) => {
+  const bar = $('#updateBar');
+  bar.innerHTML = `${icon('download')}<span>${esc(t('update.available', { version }))} — ${esc(t('update.hint'))}</span>
+    <button class="btn sm primary" data-a="open">${esc(t('update.open'))}</button>
+    <button class="icon-btn" data-a="close" title="${esc(t('common.cancel'))}">${icon('x')}</button>`;
+  bar.classList.remove('hidden');
+  bar.querySelector('[data-a="open"]').onclick = () => window.api.openWeb('account');
+  bar.querySelector('[data-a="close"]').onclick = () => bar.classList.add('hidden');
+});
+
+window.api.onLibraryBackup((file) => toast(t('acct.backupNotice'), { sub: file, timeout: 12000 }));
+
 
 // --- Yardımcılar -------------------------------------------------------------
 const folderById = (id) => data.folders.find((f) => f.id === id);
@@ -500,7 +574,20 @@ async function openSettings() {
   const langOptions = Object.entries(I18N.LANGUAGES)
     .map(([code, l]) => `<option value="${code}" ${code === LANG ? 'selected' : ''}>${esc(l.name)}</option>`).join('');
   const body = h(`<div style="display:grid;gap:16px">
-    <div class="section-title" style="margin:0">${esc(t('set.appearance'))}</div>
+    <div class="section-title" style="margin:0">${esc(t('acct.section'))}</div>
+    <div class="acct-box">
+      <div class="acct-who">${icon('user')}<span>${esc(t('acct.signedInAs', { email: (acct.user && acct.user.email) || acct.email || '' }))}</span></div>
+      <label class="check"><input type="checkbox" id="s-sync" ${acct.syncEnabled ? 'checked' : ''}>
+        <span>${esc(t('acct.syncToggle'))}<small>${esc(t('acct.syncHint'))}</small></span></label>
+      <div class="acct-status">${icon('cloud')}<span id="acct-status">${esc(syncText(acct))}</span></div>
+      <div class="acct-actions">
+        <button class="btn sm" type="button" id="s-syncnow">${icon('refresh')}${esc(t('acct.syncNow'))}</button>
+        <button class="btn sm" type="button" id="s-delremote">${icon('trash')}${esc(t('acct.deleteRemote'))}</button>
+        <span style="flex:1"></span>
+        <button class="btn sm danger" type="button" id="s-logout">${icon('logout')}${esc(t('acct.logout'))}</button>
+      </div>
+    </div>
+    <div class="section-title" style="margin:6px 0 0">${esc(t('set.appearance'))}</div>
     <div class="row c-1-1">
       <div class="field"><label>${esc(t('set.theme'))}</label>
         <div class="seg" id="s-theme">
@@ -522,6 +609,23 @@ async function openSettings() {
     <div class="field" style="max-width:200px"><label>${esc(t('set.fontSize'))}</label>
       <input class="input" id="s-font" type="number" min="9" max="28" value="${esc(s.fontSize || 14)}"></div>
   </div>`);
+
+  // Hesap bölümündeki işlemler anında uygulanır (Kaydet beklemez)
+  const q = (sel) => body.querySelector(sel);
+  q('#s-sync').onchange = async (e) => {
+    const on = e.target.checked;
+    const r = await window.api.setSyncEnabled(on);
+    if (!r.ok) { e.target.checked = !on; toast(t('sync.error', { msg: r.code }), { type: 'err' }); }
+  };
+  q('#s-syncnow').onclick = () => window.api.syncNow();
+  q('#s-delremote').onclick = async () => {
+    const ok = await confirmBox(t('acct.deleteRemote'), esc(t('acct.deleteRemoteMsg')));
+    if (!ok) return;
+    const r = await window.api.deleteRemoteLibrary();
+    if (r.ok) { q('#s-sync').checked = false; toast(t('acct.deleteRemoteDone'), { type: 'ok' }); }
+    else toast(t('sync.error', { msg: r.code }), { type: 'err' });
+  };
+  q('#s-logout').onclick = logout;
 
   // Tema seçimi anında uygulanır (önizleme); İptal edilirse eski temaya döner
   const setTheme = (v) => {

@@ -32,12 +32,16 @@ git tag v1.0.1
 git push origin v1.0.1
 ```
 
+Etiket gönderildiğinde exe'ler ayrıca sshmasters.com'a yüklenir (depo secret'ı `SSHM_RELEASE_KEY`; tanımlı değilse bu adım atlanır). Kullanıcılar exe'yi sshmasters.com › Hesabım'daki kişiye özel bağlantıdan indirir; uygulama yeni sürüm çıktığında bunu bildirir. Etiketin açıklaması sürüm notu olarak gönderilir (`git tag -a v1.2.0 -m "notlar"`).
+
 Sürüm numarası etiketten alınır (`package.json`'ı elle değiştirmek gerekmez). Actions sekmesinden "Release" iş akışını elle çalıştırırsanız yalnızca derler ve exe'leri indirilebilir "artifact" olarak saklar.
 
 İkonu değiştirmek için `build/icon.svg` dosyasını düzenleyip `npm run icon` çalıştırın.
 
 ## Özellikler
 
+- **Hesap (sshmasters.com):** uygulama girişsiz açılmaz; e-posta + şifre, “Beni hatırla”, “Şifremi unuttum” ve “Hesap oluştur” (web). Hatırlanan oturumla internet yokken de yerel kütüphaneyle açılır.
+- **Uçtan uca şifreli senkron:** bağlantılar (şifreler ve özel anahtar içerikleri dahil), klasörler ve kısayollar AES-256-GCM ile şifrelenip hesaba yedeklenir; anahtar şifreden istemcide türetilir (PBKDF2 + HKDF), sunucu şifreyi ve içeriği hiç görmez (girişte yalnız türetilmiş `auth_hash` gönderilir). Öğe düzeyinde birleştirme, çakışma (409) çözümü, silinenler 30 gün izlenir. Ayarlar › Hesap ve senkronizasyon: aç/kapat, şimdi senkronize et, sunucudaki kopyayı sil, çıkış. Cihaz ayarları (tema, dil, yazı boyutu, tepsi…) gönderilmez. Kod: `src/account.js`.
 - **Ana ekran:** “Yeni” kartıyla bağlantı oluşturma (ad, IP/sunucu, port, kullanıcı, şifre veya özel anahtar), kaydetmeden **bağlantı testi**, **“Son kaldığım klasöre git”** seçeneği, renk etiketi.
 - **Klasörler:** iç içe klasörler; kartları sürükleyip klasöre veya üst seviyeye (yol çubuğuna) bırakarak taşıma; arama (Ctrl+F).
 - **Terminal:** karta çift tıklayınca ayrı pencerede xterm tabanlı SSH konsolu (256 renk, Ctrl+C/Ctrl+Shift+V, sağ tık menüsü, yeniden bağlanma).

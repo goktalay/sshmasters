@@ -159,3 +159,34 @@ body {
 .btn.primary.danger-primary { background: linear-gradient(135deg, #f87171, #e11d48); color: #fff; }
 .hidden { display: none !important; }
 .theme-dot { width: 10px; height: 10px; border-radius: 3px; border: 2px solid; flex: none; }
+
+/* --- Hesap rozeti ve senkron durumu ---------------------------------------- */
+.account-chip {
+  display: inline-flex; align-items: center; gap: 6px; height: 34px; padding-block: 0; padding-inline: 3px 8px;
+  border-radius: 20px; border: 1px solid var(--border); background: var(--surface-2); cursor: pointer; color: var(--text-2);
+}
+.account-chip:hover { border-color: var(--border-strong); }
+.ac-avatar {
+  width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--accent-grad); color: var(--on-accent); font-weight: 700; font-size: 13px;
+}
+.ac-sync { display: inline-flex; }
+.ac-sync svg.i { width: 16px; height: 16px; }
+.account-chip.s-ok .ac-sync, .account-chip.s-idle .ac-sync { color: var(--ok); }
+.account-chip.s-offline .ac-sync, .account-chip.s-off .ac-sync { color: var(--text-3); }
+.account-chip.s-error .ac-sync { color: var(--err); }
+.account-chip .spin { width: 13px; height: 13px; border-width: 2px; color: var(--accent); }
+
+.acct-box { display: grid; gap: 12px; padding: 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-2); }
+.acct-who, .acct-status { display: flex; align-items: center; gap: 8px; color: var(--text-2); }
+.acct-who { color: var(--text); font-weight: 600; }
+.acct-status { font-size: 12.5px; }
+.acct-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn.danger { color: var(--err); }
+
+.update-bar {
+  display: flex; align-items: center; gap: 10px; margin: 12px 28px 0; padding-block: 8px; padding-inline: 14px 10px;
+  border: 1px solid rgba(34, 211, 238, .4); background: rgba(34, 211, 238, .08); border-radius: 10px; color: var(--text);
+}
+.update-bar > span { flex: 1; }
+.update-bar svg.i { color: var(--accent); }

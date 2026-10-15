@@ -249,7 +249,8 @@ function initAccount() {
     onStatus: (st) => {
       for (const w of BrowserWindow.getAllWindows()) w.webContents.send('account:status', st);
     },
-    onSessionExpired: () => showLogin(t('auth.errSessionExpired')),
+    onSessionExpired: (code) =>
+      showLogin(t(code === 'app_disabled' ? 'auth.errAppDisabled' : code === 'wrong_app' ? 'auth.errWrongApp' : 'auth.errSessionExpired')),
     onUpdate: (info) => mainWindow && mainWindow.webContents.send('app:update', info),
   });
 }

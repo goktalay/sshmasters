@@ -17,6 +17,8 @@
 
   // ---------------------------------------------------------------------------
   STRINGS.tr = {
+    'auth.errAppDisabled': "Bu hesapta SSH Master kullanımı yönetici tarafından kapatılmış. Hesap yöneticinizle iletişime geçin.",
+    'auth.errWrongApp': "Bu oturum başka bir uygulamaya ait. Lütfen SSH Master için yeniden giriş yapın.",
     // hesap ve senkron
     "auth.subtitle": "Hesabınızla giriş yapın",
     "auth.email": "E-posta",
@@ -170,6 +172,8 @@
 
   // ---------------------------------------------------------------------------
   STRINGS.en = {
+    'auth.errAppDisabled': "SSH Master has been disabled for this account by an administrator. Contact your account administrator.",
+    'auth.errWrongApp': "This session belongs to another application. Please sign in to SSH Master again.",
     // hesap ve senkron
     "auth.subtitle": "Sign in with your account",
     "auth.email": "Email",
@@ -323,6 +327,8 @@
 
   // ---------------------------------------------------------------------------
   STRINGS.ar = {
+    'auth.errAppDisabled': "عطّل المسؤول استخدام SSH Master لهذا الحساب. تواصل مع مسؤول حسابك.",
+    'auth.errWrongApp': "هذه الجلسة تخص تطبيقًا آخر. يرجى تسجيل الدخول إلى SSH Master مجددًا.",
     // hesap ve senkron
     "auth.subtitle": "سجّل الدخول بحسابك",
     "auth.email": "البريد الإلكتروني",
@@ -476,6 +482,8 @@
 
   // ---------------------------------------------------------------------------
   STRINGS.fr = {
+    'auth.errAppDisabled': "SSH Master a été désactivé pour ce compte par un administrateur. Contactez l’administrateur de votre compte.",
+    'auth.errWrongApp': "Cette session appartient à une autre application. Reconnectez-vous à SSH Master.",
     // hesap ve senkron
     "auth.subtitle": "Connectez-vous avec votre compte",
     "auth.email": "E-mail",
@@ -629,6 +637,8 @@
 
   // ---------------------------------------------------------------------------
   STRINGS.es = {
+    'auth.errAppDisabled': "Un administrador ha desactivado SSH Master para esta cuenta. Contacta con el administrador de tu cuenta.",
+    'auth.errWrongApp': "Esta sesión pertenece a otra aplicación. Vuelve a iniciar sesión en SSH Master.",
     // hesap ve senkron
     "auth.subtitle": "Inicia sesión con tu cuenta",
     "auth.email": "Correo electrónico",
@@ -782,6 +792,8 @@
 
   // ---------------------------------------------------------------------------
   STRINGS.de = {
+    'auth.errAppDisabled': "SSH Master wurde für dieses Konto von einem Administrator deaktiviert. Wenden Sie sich an Ihren Kontoadministrator.",
+    'auth.errWrongApp': "Diese Sitzung gehört zu einer anderen Anwendung. Bitte melden Sie sich erneut bei SSH Master an.",
     // hesap ve senkron
     "auth.subtitle": "Mit Ihrem Konto anmelden",
     "auth.email": "E-Mail",
@@ -935,6 +947,8 @@
 
   // ---------------------------------------------------------------------------
   STRINGS.zh = {
+    'auth.errAppDisabled': "管理员已为此账户停用 SSH Master。请联系你的账户管理员。",
+    'auth.errWrongApp': "此会话属于其他应用。请重新登录 SSH Master。",
     // hesap ve senkron
     "auth.subtitle": "使用你的账户登录",
     "auth.email": "电子邮件",

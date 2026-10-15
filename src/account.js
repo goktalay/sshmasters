@@ -203,12 +203,14 @@ function createAccount(deps) {
     if (token) api('POST', '/api/sm/auth/logout', { token }).catch(() => {});
   }
 
-  function expire() {
+  // Oturum sunucuda geçersiz: 401 session_expired, ya da 403 app_disabled (yönetici bu hesapta
+  // SSH Master'ı kapattı) / wrong_app (başka uygulamanın oturumu). Yerel kütüphane korunur.
+  function expire(code = 'session_expired') {
     session = null;
     stopTimers();
     persist();
-    setStatus({ state: 'idle', error: 'session_expired' });
-    deps.onSessionExpired();
+    setStatus({ state: 'idle', error: code });
+    deps.onSessionExpired(code);
   }
 
   async function authed(method, route, body) {
@@ -216,7 +218,8 @@ function createAccount(deps) {
     try {
       return await api(method, route, { token: session.token, body });
     } catch (e) {
-      if (e.status === 401) expire();
+      if (e.status === 401) expire('session_expired');
+      else if (e.status === 403 && ['app_disabled', 'wrong_app'].includes(e.code)) expire(e.code);
       throw e;
     }
   }
@@ -431,7 +434,7 @@ function createAccount(deps) {
       if (me.kdf && session.kdfSalt && me.kdf.salt !== session.kdfSalt) return expire(); // şifre başka yerde değişti
       persist();
     } catch (e) {
-      if (e.status === 401) return;
+      if (e.status === 401 || e.status === 403) return;
       setStatus({ state: e.code === 'offline' ? 'offline' : 'error', error: e.code });
     }
     await syncNow();

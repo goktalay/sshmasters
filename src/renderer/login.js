@@ -35,6 +35,8 @@ const ERRORS = {
   rate_limited: 'auth.errRateLimited',
   offline: 'auth.errOffline',
   session_expired: 'auth.errSessionExpired',
+  app_disabled: 'auth.errAppDisabled',
+  wrong_app: 'auth.errWrongApp',
 };
 
 function showError(msg) {

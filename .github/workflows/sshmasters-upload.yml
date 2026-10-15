@@ -1,4 +1,4 @@
-# Daha önce yayınlanmış bir GitHub Release'in kurulum exe'sini sshmasters.com'a yükler.
+# Daha önce yayınlanmış bir GitHub Release'in exe'lerini sshmasters.com'a yükler (var olanlar 409 ile atlanır).
 # Actions › "sshmasters.com'a yükle" › Run workflow › etiket (ör. v1.2.0).
 name: sshmasters.com'a yükle
 
@@ -20,14 +20,16 @@ jobs:
         with:
           fetch-depth: 0 # etiket açıklaması (sürüm notu) için
 
-      - name: Release'teki kurulum exe'sini indir
+      - name: Release'teki exe'leri indir
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ inputs.tag }}
-        run: gh release download "$TAG" -p 'SSH-Master-Setup-*.exe' -D dist
+        run: gh release download "$TAG" -p 'SSH-Master-Setup-*.exe' -p 'SSH-Master-Portable-*.exe' -D dist
 
       - name: sshmasters.com'a yükle
         env:
           SSHM_RELEASE_KEY: ${{ secrets.SSHM_RELEASE_KEY }}
           TAG: ${{ inputs.tag }}
-        run: bash scripts/upload-sshmasters.sh "${TAG#v}" "dist/SSH-Master-Setup-${TAG#v}.exe" "$(git for-each-ref --format='%(contents)' "refs/tags/$TAG")"
+        run: |
+          V="${TAG#v}"
+          bash scripts/upload-sshmasters.sh "$V" "dist/SSH-Master-Setup-$V.exe" "$(git for-each-ref --format='%(contents)' "refs/tags/$TAG")" "dist/SSH-Master-Portable-$V.exe"

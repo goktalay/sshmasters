@@ -472,6 +472,7 @@ $('#btnSplitDown').innerHTML = icon('rows') + esc(t('pane.splitDown'));
 $('#btnSync').title = t('term.syncTitle');
 $('#btnSplitRight').title = t('term.splitRightTitle');
 $('#btnSplitDown').title = t('term.splitDownTitle');
+$('.term-bar').appendChild(mastertoolButton()); // en sağ üst köşe
 $('#btnSplitRight').onclick = () => active && splitPane(active, 'row');
 $('#btnSplitDown').onclick = () => active && splitPane(active, 'col');
 

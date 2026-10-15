@@ -20,6 +20,7 @@ contextBridge.exposeInMainWorld('api', {
   setSyncEnabled: (on) => ipcRenderer.invoke('account:setSync', on),
   deleteRemoteLibrary: () => ipcRenderer.invoke('account:deleteRemote'),
   openWeb: (page) => ipcRenderer.invoke('account:openWeb', page), // 'forgot' | 'register' | 'account'
+  openMastertool: () => ipcRenderer.invoke('app:openMastertool'),
   onAccountStatus: on('account:status'),
   onUpdateAvailable: on('app:update'),
   onLibraryBackup: on('account:backup'),

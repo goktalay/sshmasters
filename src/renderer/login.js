@@ -12,6 +12,7 @@ $('#forgot').textContent = t('auth.forgot');
 $('#noAccount').textContent = t('auth.noAccount');
 $('#register').textContent = t('auth.register');
 $('#submit').textContent = t('auth.submit');
+document.body.appendChild(mastertoolButton()).classList.add('login-mt'); // sağ üst köşe
 $('#eye').innerHTML = icon('eye');
 $('#eye').title = t('common.show');
 

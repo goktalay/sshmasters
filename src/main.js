@@ -990,6 +990,12 @@ ipcMain.handle('account:deleteRemote', async () => {
   try { await account.deleteRemote(); return { ok: true }; } catch (e) { return { ok: false, code: e.code }; }
 });
 
+// Mastertool düğmesi: ürün sitesi uygulamanın diliyle ve o anki açık/koyu temasıyla açılır
+ipcMain.handle('app:openMastertool', () => {
+  const theme = nativeTheme.shouldUseDarkColors ? 'dark' : 'light';
+  shell.openExternal(`https://mastertool.download/?lang=${encodeURIComponent(currentLang())}&theme=${theme}`);
+});
+
 // sshmasters.com sayfaları varsayılan tarayıcıda açılır (yalnız bu site)
 ipcMain.handle('account:openWeb', (_e, page) => {
   const allowed = { forgot: '/sifremi-unuttum', register: '/kayit', account: '/hesabim' };

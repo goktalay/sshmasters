@@ -37,6 +37,7 @@ $('#search').placeholder = t('app.searchPh');
 $('#btnSplit').title = t('app.splitTitle');
 $('#btnSettings').title = t('app.settings');
 
+$('.topbar').appendChild(mastertoolButton()); // en sağ üst köşe
 $('#btnSplit').onclick = () => openConns(selectedConns().map((c) => c.id));
 $('#btnSettings').onclick = openSettings;
 $('#content').addEventListener('mousedown', (e) => {

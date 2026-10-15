@@ -190,3 +190,30 @@ body {
 }
 .update-bar > span { flex: 1; }
 .update-bar svg.i { color: var(--accent); }
+
+/* --- Ayarlar (Mastertool ortak iskeleti) ------------------------------------ */
+.set-wrap { display: grid; grid-template-columns: 170px 1fr; gap: 18px; min-height: 380px; }
+.set-nav { display: flex; flex-direction: column; gap: 2px; border-inline-end: 1px solid var(--border); padding-inline-end: 12px; }
+.set-nav button {
+  display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; border: none; background: none;
+  cursor: pointer; color: var(--text-2); text-align: start;
+}
+.set-nav button:hover { background: var(--surface-2); color: var(--text); }
+.set-nav button.on { background: var(--surface-3); color: var(--text); font-weight: 600; }
+.set-nav button.on svg.i { color: var(--accent); }
+.set-pages section { display: grid; gap: 16px; align-content: start; }
+.set-pages .section-title { margin: 4px 0 -4px; }
+.set-hint { color: var(--text-3); font-size: 12px; line-height: 1.45; }
+.about-head { display: flex; align-items: center; gap: 14px; }
+.about-head img { width: 56px; height: 56px; border-radius: 14px; }
+.about-name { font-size: 18px; font-weight: 700; }
+.about-ver { color: var(--text-2); margin-top: 2px; }
+.about-update { font-size: 12.5px; color: var(--text-2); }
+.about-update.ok { color: var(--ok); }
+.about-update.new { color: var(--accent); }
+.about-update.err { color: var(--err); }
+.oss { margin: 0; padding: 0; list-style: none; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.oss li { display: flex; justify-content: space-between; padding: 7px 12px; font-size: 12.5px; border-bottom: 1px solid var(--border); }
+.oss li:last-child { border-bottom: none; }
+.oss li span:last-child { color: var(--text-3); font-family: var(--mono); font-size: 11.5px; }
+@media (max-width: 720px) { .set-wrap { grid-template-columns: 1fr; } .set-nav { flex-direction: row; flex-wrap: wrap; border: none; padding: 0; } }

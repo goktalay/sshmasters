@@ -457,11 +457,17 @@ function createAccount(deps) {
     persist();
   }
 
-  async function checkUpdate() {
+  // Yeni sürüm denetimi. Açılışta sessizce çağrılır; Ayarlar › Hakkında'dan da (sonucu döner, hatayı fırlatır).
+  async function checkUpdate({ manual = false } = {}) {
     try {
       const r = await authed('GET', '/api/sm/releases/latest');
-      if (r && r.version && compareVersions(r.version, deps.appVersion) > 0) deps.onUpdate({ version: r.version, notes: r.notes || '' });
-    } catch { /* bildirim isteğe bağlı */ }
+      const newer = !!(r && r.version && compareVersions(r.version, deps.appVersion) > 0);
+      if (newer) deps.onUpdate({ version: r.version, notes: r.notes || '' });
+      return { latest: (r && r.version) || null, current: deps.appVersion, newer };
+    } catch (e) {
+      if (manual) throw e;
+      return null; // açılıştaki bildirim isteğe bağlı
+    }
   }
 
   return {

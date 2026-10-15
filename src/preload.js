@@ -21,6 +21,9 @@ contextBridge.exposeInMainWorld('api', {
   deleteRemoteLibrary: () => ipcRenderer.invoke('account:deleteRemote'),
   openWeb: (page) => ipcRenderer.invoke('account:openWeb', page), // 'forgot' | 'register' | 'account'
   openMastertool: () => ipcRenderer.invoke('app:openMastertool'),
+  about: () => ipcRenderer.invoke('app:about'),
+  checkUpdate: () => ipcRenderer.invoke('app:checkUpdate'),
+  openLicenses: () => ipcRenderer.invoke('app:openLicenses'),
   onAccountStatus: on('account:status'),
   onUpdateAvailable: on('app:update'),
   onLibraryBackup: on('account:backup'),

@@ -37,7 +37,8 @@ const defaultStore = () => ({
     minimizeToTray: true,  // küçültülünce sistem tepsisine gizle
     closeToTray: false,    // kapat (X) düğmesi uygulamayı tepsiye gizler
     fontSize: 14,          // terminal yazı boyutu
-    appTheme: 'dark',      // 'dark' | 'light' | 'system'
+    appTheme: 'system',    // 'dark' | 'light' | 'system' (Mastertool standardı: varsayılan Sistem)
+    openAtLogin: false,    // Windows oturumu açılınca başlat
     language: null,        // null = sistem dili (desteklenmiyorsa İngilizce)
     transfersInBackground: false, // büyük aktarımlar doğrudan arka planda
   },
@@ -64,7 +65,7 @@ function loadStore() {
 // Gece / Gündüz / Sistem: tüm pencerelerin prefers-color-scheme'ini ve başlık çubuklarını belirler
 function applyAppTheme() {
   const v = store.settings.appTheme;
-  nativeTheme.themeSource = v === 'light' || v === 'system' ? v : 'dark';
+  nativeTheme.themeSource = v === 'dark' || v === 'light' ? v : 'system';
 }
 const windowBg = () => (nativeTheme.shouldUseDarkColors ? '#0b0f17' : '#eef2f7');
 
@@ -999,7 +1000,10 @@ ipcMain.handle('app:openMastertool', () => {
 // sshmasters.com sayfaları varsayılan tarayıcıda açılır (yalnız bu site)
 ipcMain.handle('account:openWeb', (_e, page) => {
   const allowed = { forgot: '/sifremi-unuttum', register: '/kayit', account: '/hesabim' };
-  if (allowed[page]) shell.openExternal(require('./account').API_BASE + allowed[page]);
+  if (!allowed[page]) return;
+  // Mastertool standardı: hesap sayfaları uygulamanın diliyle ve o anki temasıyla açılır
+  const q = new URLSearchParams({ lang: currentLang(), theme: nativeTheme.shouldUseDarkColors ? 'dark' : 'light', app: 'sshmaster' });
+  shell.openExternal(`${require('./account').API_BASE}${allowed[page]}?${q}`);
 });
 ipcMain.on('app:lang', (e) => { e.returnValue = currentLang(); });
 
@@ -1163,8 +1167,37 @@ ipcMain.handle('shortcut:reorder', (_e, ids) => {
   broadcastStore();
 });
 
+// Windows oturumu açılınca başlat (yalnız paketlenmiş uygulamada; geliştirmede electron.exe kaydedilmesin)
+function applyOpenAtLogin() {
+  if (!app.isPackaged) return;
+  app.setLoginItemSettings({ openAtLogin: !!store.settings.openAtLogin, args: ['--hidden'] });
+}
+
+ipcMain.handle('app:about', () => ({
+  version: app.getVersion(),
+  electron: process.versions.electron,
+  chrome: process.versions.chrome,
+  openAtLogin: app.isPackaged ? app.getLoginItemSettings({ args: ['--hidden'] }).openAtLogin : !!store.settings.openAtLogin,
+}));
+
+ipcMain.handle('app:checkUpdate', async () => {
+  try {
+    return { ok: true, ...(await account.checkUpdate({ manual: true })) };
+  } catch (e) {
+    return { ok: false, code: e.code || 'error', message: e.message };
+  }
+});
+
+// Chromium/Electron lisans dosyaları kurulum klasöründe durur
+ipcMain.handle('app:openLicenses', () => {
+  const file = path.join(path.dirname(process.execPath), 'LICENSES.chromium.html');
+  if (fs.existsSync(file)) return shell.openPath(file);
+  return shell.openExternal('https://www.electronjs.org/docs/latest#license');
+});
+
 ipcMain.handle('settings:set', (_e, patch) => {
   Object.assign(store.settings, patch);
+  if ('openAtLogin' in patch) applyOpenAtLogin();
   saveStore({ sync: false });
   if ('appTheme' in patch) applyAppTheme();
   if ('language' in patch) {
@@ -1202,6 +1235,10 @@ if (!gotLock) {
     // (çevrimdışıyken yerel kütüphaneyle), oturum sunucuda düşmüşse giriş ekranına dönülür.
     if (account.isLoggedIn()) {
       createMainWindow();
+      // Windows oturumuyla başlatıldıysa ve tepsiye küçültme açıksa doğrudan tepside başla
+      if (process.argv.includes('--hidden') && store.settings.minimizeToTray) {
+        mainWindow.once('ready-to-show', () => hideToTray());
+      }
       account.start();
     } else {
       createLoginWindow();

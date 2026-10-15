@@ -39,7 +39,7 @@ $('#btnSettings').title = t('app.settings');
 
 $('.topbar').appendChild(mastertoolButton()); // en sağ üst köşe
 $('#btnSplit').onclick = () => openConns(selectedConns().map((c) => c.id));
-$('#btnSettings').onclick = openSettings;
+$('#btnSettings').onclick = () => openSettings();
 $('#content').addEventListener('mousedown', (e) => {
   if (!e.target.closest('.card, .new-card') && !e.ctrlKey) { selected.clear(); updateSelectionUI(); }
 });
@@ -569,50 +569,117 @@ async function editConnection(conn, folderId) {
 }
 
 // --- Ayarlar -----------------------------------------------------------------
-async function openSettings() {
+// Mastertool ortak iskeleti: Genel (dil, tema, başlangıç) · Hesap · uygulamaya özel bölümler · Hakkında
+const OSS = [
+  ['SSH Master', 'MIT'], ['Electron', 'MIT'], ['Chromium', 'BSD-3-Clause +'], ['Node.js', 'MIT'],
+  ['xterm.js', 'MIT'], ['ssh2', 'MIT'],
+];
+
+async function openSettings(startTab = 'general') {
   const s = data.settings || {};
-  let appTheme = s.appTheme || 'dark';
+  let appTheme = s.appTheme || 'system';
+  const about = await window.api.about();
   const langOptions = Object.entries(I18N.LANGUAGES)
     .map(([code, l]) => `<option value="${code}" ${code === LANG ? 'selected' : ''}>${esc(l.name)}</option>`).join('');
-  const body = h(`<div style="display:grid;gap:16px">
-    <div class="section-title" style="margin:0">${esc(t('acct.section'))}</div>
-    <div class="acct-box">
-      <div class="acct-who">${icon('user')}<span>${esc(t('acct.signedInAs', { email: (acct.user && acct.user.email) || acct.email || '' }))}</span></div>
-      <label class="check"><input type="checkbox" id="s-sync" ${acct.syncEnabled ? 'checked' : ''}>
-        <span>${esc(t('acct.syncToggle'))}<small>${esc(t('acct.syncHint'))}</small></span></label>
-      <div class="acct-status">${icon('cloud')}<span id="acct-status">${esc(syncText(acct))}</span></div>
-      <div class="acct-actions">
-        <button class="btn sm" type="button" id="s-syncnow">${icon('refresh')}${esc(t('acct.syncNow'))}</button>
-        <button class="btn sm" type="button" id="s-delremote">${icon('trash')}${esc(t('acct.deleteRemote'))}</button>
-        <span style="flex:1"></span>
-        <button class="btn sm danger" type="button" id="s-logout">${icon('logout')}${esc(t('acct.logout'))}</button>
-      </div>
+  const tabs = [
+    ['general', 'gear', t('set.general')],
+    ['account', 'user', t('set.account')],
+    ['terminal', 'terminal', t('set.terminal')],
+    ['transfers', 'download', t('set.transfers')],
+    ['about', 'bolt', t('set.about')],
+  ];
+  const email = (acct.user && acct.user.email) || acct.email || '';
+
+  const body = h(`<div class="set-wrap">
+    <nav class="set-nav">${tabs.map(([k, ic, label]) => `<button type="button" data-tab="${k}">${icon(ic)}<span>${esc(label)}</span></button>`).join('')}</nav>
+    <div class="set-pages">
+      <section data-page="general">
+        <div class="field"><label>${esc(t('set.language'))}</label><select class="input" id="s-lang">${langOptions}</select>
+          <small class="set-hint">${esc(t('set.languageHint'))}</small></div>
+        <div class="field"><label>${esc(t('set.theme'))}</label>
+          <div class="seg" id="s-theme">
+            <button type="button" data-v="dark">${icon('moon')}${esc(t('set.themeDark'))}</button>
+            <button type="button" data-v="light">${icon('sun')}${esc(t('set.themeLight'))}</button>
+            <button type="button" data-v="system">${icon('monitor')}${esc(t('set.themeSystem'))}</button>
+          </div></div>
+        <div class="section-title">${esc(t('set.startup'))}</div>
+        <label class="check"><input type="checkbox" id="s-login" ${about.openAtLogin ? 'checked' : ''}>
+          <span>${esc(t('set.openAtLogin'))}<small>${esc(t('set.openAtLoginHint'))}</small></span></label>
+        <label class="check"><input type="checkbox" id="s-min" ${s.minimizeToTray ? 'checked' : ''}>
+          <span>${esc(t('set.minTray'))}<small>${esc(t('set.minTrayHint'))}</small></span></label>
+        <label class="check"><input type="checkbox" id="s-close" ${s.closeToTray ? 'checked' : ''}>
+          <span>${esc(t('set.closeTray'))}<small>${esc(t('set.closeTrayHint'))}</small></span></label>
+      </section>
+
+      <section data-page="account">
+        <div class="acct-box">
+          <div class="acct-who">${icon('user')}<span>${esc(t('acct.signedInAs', { email }))}</span></div>
+          <label class="check"><input type="checkbox" id="s-sync" ${acct.syncEnabled ? 'checked' : ''}>
+            <span>${esc(t('acct.syncToggle'))}<small>${esc(t('acct.syncHint'))}</small></span></label>
+          <div class="acct-status">${icon('cloud')}<span id="acct-status">${esc(syncText(acct))}</span></div>
+          <div class="acct-actions">
+            <button class="btn sm" type="button" id="s-syncnow">${icon('refresh')}${esc(t('acct.syncNow'))}</button>
+            <button class="btn sm" type="button" id="s-delremote">${icon('trash')}${esc(t('acct.deleteRemote'))}</button>
+          </div>
+          <div class="acct-actions">
+            <button class="btn sm" type="button" id="s-web">${icon('open')}${esc(t('acct.myAccount'))}</button>
+            <span style="flex:1"></span>
+            <button class="btn sm danger" type="button" id="s-logout">${icon('logout')}${esc(t('acct.logout'))}</button>
+          </div>
+        </div>
+      </section>
+
+      <section data-page="terminal">
+        <div class="field" style="max-width:200px"><label>${esc(t('set.fontSize'))}</label>
+          <input class="input" id="s-font" type="number" min="9" max="28" value="${esc(s.fontSize || 14)}"></div>
+      </section>
+
+      <section data-page="transfers">
+        <label class="check"><input type="checkbox" id="s-trbg" ${s.transfersInBackground ? 'checked' : ''}>
+          <span>${esc(t('set.trBg'))}<small>${esc(t('set.trBgHint'))}</small></span></label>
+      </section>
+
+      <section data-page="about">
+        <div class="about-head">
+          <img src="../../build/icon.png" alt="">
+          <div><div class="about-name">SSH Master</div>
+            <div class="about-ver">${esc(t('about.version', { version: about.version }))}</div></div>
+        </div>
+        <div class="set-hint">${esc(t('about.family'))}</div>
+        <div class="acct-actions">
+          <button class="btn sm" type="button" id="s-update">${icon('refresh')}${esc(t('about.checkUpdate'))}</button>
+          <span class="about-update" id="s-update-result"></span>
+        </div>
+        <div class="section-title">${esc(t('about.licenses'))}</div>
+        <div class="set-hint">${esc(t('about.licensesIntro'))}</div>
+        <ul class="oss">${OSS.map(([n, l]) => `<li><span>${esc(n)}</span><span>${esc(l)}</span></li>`).join('')}</ul>
+        <div class="acct-actions">
+          <button class="btn sm" type="button" id="s-licenses">${icon('file')}${esc(t('about.chromium'))}</button>
+          <span class="set-hint">Electron ${esc(about.electron)} · Chromium ${esc(about.chrome)}</span>
+        </div>
+      </section>
     </div>
-    <div class="section-title" style="margin:6px 0 0">${esc(t('set.appearance'))}</div>
-    <div class="row c-1-1">
-      <div class="field"><label>${esc(t('set.theme'))}</label>
-        <div class="seg" id="s-theme">
-          <button data-v="dark">${icon('moon')}${esc(t('set.themeDark'))}</button>
-          <button data-v="light">${icon('sun')}${esc(t('set.themeLight'))}</button>
-          <button data-v="system">${icon('monitor')}${esc(t('set.themeSystem'))}</button>
-        </div></div>
-      <div class="field"><label>${esc(t('set.language'))}</label><select class="input" id="s-lang">${langOptions}</select></div>
-    </div>
-    <div class="section-title" style="margin:6px 0 0">${esc(t('set.window'))}</div>
-    <label class="check"><input type="checkbox" id="s-min" ${s.minimizeToTray ? 'checked' : ''}>
-      <span>${esc(t('set.minTray'))}<small>${esc(t('set.minTrayHint'))}</small></span></label>
-    <label class="check"><input type="checkbox" id="s-close" ${s.closeToTray ? 'checked' : ''}>
-      <span>${esc(t('set.closeTray'))}<small>${esc(t('set.closeTrayHint'))}</small></span></label>
-    <div class="section-title" style="margin:6px 0 0">${esc(t('set.transfers'))}</div>
-    <label class="check"><input type="checkbox" id="s-trbg" ${s.transfersInBackground ? 'checked' : ''}>
-      <span>${esc(t('set.trBg'))}<small>${esc(t('set.trBgHint'))}</small></span></label>
-    <div class="section-title" style="margin:6px 0 0">${esc(t('set.terminal'))}</div>
-    <div class="field" style="max-width:200px"><label>${esc(t('set.fontSize'))}</label>
-      <input class="input" id="s-font" type="number" min="9" max="28" value="${esc(s.fontSize || 14)}"></div>
   </div>`);
 
-  // Hesap bölümündeki işlemler anında uygulanır (Kaydet beklemez)
   const q = (sel) => body.querySelector(sel);
+  const showTab = (k) => {
+    body.querySelectorAll('.set-nav button').forEach((b) => b.classList.toggle('on', b.dataset.tab === k));
+    body.querySelectorAll('.set-pages section').forEach((p) => p.classList.toggle('hidden', p.dataset.page !== k));
+  };
+  body.querySelectorAll('.set-nav button').forEach((b) => (b.onclick = () => showTab(b.dataset.tab)));
+  showTab(startTab);
+
+  // Tema seçimi anında uygulanır (önizleme); İptal edilirse eski temaya döner
+  const originalTheme = appTheme;
+  const setTheme = (v) => {
+    appTheme = v;
+    body.querySelectorAll('#s-theme button').forEach((b) => b.classList.toggle('on', b.dataset.v === v));
+    window.api.setSettings({ appTheme: v });
+  };
+  body.querySelectorAll('#s-theme button').forEach((b) => (b.onclick = () => setTheme(b.dataset.v)));
+  body.querySelectorAll('#s-theme button').forEach((b) => b.classList.toggle('on', b.dataset.v === appTheme));
+
+  // Hesap bölümündeki işlemler anında uygulanır (Kaydet beklemez)
   q('#s-sync').onchange = async (e) => {
     const on = e.target.checked;
     const r = await window.api.setSyncEnabled(on);
@@ -626,20 +693,23 @@ async function openSettings() {
     if (r.ok) { q('#s-sync').checked = false; toast(t('acct.deleteRemoteDone'), { type: 'ok' }); }
     else toast(t('sync.error', { msg: r.code }), { type: 'err' });
   };
+  q('#s-web').onclick = () => window.api.openWeb('account');
   q('#s-logout').onclick = logout;
 
-  // Tema seçimi anında uygulanır (önizleme); İptal edilirse eski temaya döner
-  const setTheme = (v) => {
-    appTheme = v;
-    body.querySelectorAll('#s-theme button').forEach((b) => b.classList.toggle('on', b.dataset.v === v));
-    window.api.setSettings({ appTheme: v });
+  // Hakkında: yeni sürüm denetimi ve lisanslar
+  q('#s-update').onclick = async () => {
+    const out = q('#s-update-result');
+    out.className = 'about-update';
+    out.textContent = t('about.checking');
+    const r = await window.api.checkUpdate();
+    if (!r.ok) { out.classList.add('err'); out.textContent = t('about.checkFailed', { msg: r.message || r.code }); return; }
+    if (r.newer) { out.classList.add('new'); out.textContent = `${t('update.available', { version: r.latest })} — ${t('update.hint')}`; }
+    else { out.classList.add('ok'); out.textContent = t('about.upToDate'); }
   };
-  body.querySelectorAll('#s-theme button').forEach((b) => (b.onclick = () => setTheme(b.dataset.v)));
-  body.querySelectorAll('#s-theme button').forEach((b) => b.classList.toggle('on', b.dataset.v === appTheme));
-  const originalTheme = appTheme;
+  q('#s-licenses').onclick = () => window.api.openLicenses();
 
   const res = await openModal({
-    title: t('set.title'), iconName: 'gear', width: 600, body,
+    title: t('set.title'), iconName: 'gear', width: 760, body,
     buttons: [
       { label: t('common.cancel'), value: null },
       {
@@ -647,6 +717,7 @@ async function openSettings() {
         onClick: (m) => ({
           appTheme,
           language: m.querySelector('#s-lang').value,
+          openAtLogin: m.querySelector('#s-login').checked,
           minimizeToTray: m.querySelector('#s-min').checked,
           closeToTray: m.querySelector('#s-close').checked,
           transfersInBackground: m.querySelector('#s-trbg').checked,

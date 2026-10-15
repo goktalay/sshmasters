@@ -54,9 +54,9 @@ Sürüm numarası etiketten alınır (`package.json`'ı elle değiştirmek gerek
   2. **Sunucu dosyaları (SFTP)** — gezinme, terminal klasörünü takip etme, sağ tık → **İndir** (alttaki Windows klasörüne), yeniden adlandır, sil, yeni klasör.
   3. **Bilgisayarım** — Windows klasörleri/sürücüler, sağ tık → **Yükle** (üstteki sunucu klasörüne). Paneller arasında ve Windows Gezgini'nden sürükle-bırak da desteklenir.
 - **Aktarım ilerlemesi:** büyük indirme/yüklemelerde (5 MB üstü veya 20'den fazla dosya) dosya sayısı, hız ve kalan süreyi gösteren ilerleme penceresi; **Arka planda göster** ile aktarım, bölmenin sol panelinin altındaki daraltılabilir **Aktarımlar** bölümüne geçer. Aktarımlar iptal edilebilir (yarım dosyalar silinir) ve her biri ayrı SFTP kanalında çalıştığı için dosya listesi takılmaz.
-- **Tema:** Gece, Gündüz veya Sistem tercihi (Windows başlık çubukları dahil).
-- **Dil:** Türkçe, English, العربية (sağdan sola), Français, Español, Deutsch, 中文. Varsayılan olarak sistem dili kullanılır; çeviriler `src/i18n.js` içindedir.
-- **Ayarlar:** küçültüldüğünde sistem tepsisinde göster, kapatıldığında tepsiye gizle, terminal yazı boyutu. Tepsi menüsünden klasör yapısına göre hızlı bağlanma.
+- **Tema:** Gece, Gündüz veya Sistem tercihi (varsayılan: Sistem; Windows başlık çubukları dahil).
+- **Dil:** Türkçe, English, Français, Deutsch, Español, العربية (sağdan sola), 中文, Русский (Mastertool ailesinin ortak 8 dili ve sırası). Varsayılan olarak sistem dili, bulunamazsa İngilizce kullanılır; çeviriler `src/i18n.js` içindedir.
+- **Ayarlar (Mastertool ortak iskeleti):** **Genel** (dil, tema, başlangıç: Windows oturumu açılınca başlat, tepsiye küçült, kapatınca tepsiye gizle) · **Hesap** (e-posta, senkron aç/kapat, son senkron, şimdi senkronize et, sunucu kopyasını sil, Hesabım, çıkış) · **Terminal** · **Dosya aktarımları** · **Hakkında** (sürüm, güncellemeleri denetle, açık kaynak lisansları). Hesap sayfaları `?lang=&theme=&app=sshmaster` ile uygulamanın diliyle ve temasıyla açılır. Tepsi menüsünden klasör yapısına göre hızlı bağlanma.
 - **Güvenlik:** şifreler Windows DPAPI (Electron `safeStorage`) ile şifrelenir; sunucu host anahtarı ilk bağlantıda kaydedilir, değişirse bağlantı reddedilir.
 
 Veriler `%APPDATA%\SSH Master\store.json` içinde tutulur.

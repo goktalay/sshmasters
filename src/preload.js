@@ -9,6 +9,9 @@ const on = (channel) => (cb) => {
 };
 
 contextBridge.exposeInMainWorld('api', {
+  // arayüz dili (açılışta senkron alınır ki ilk çizim doğru dilde olsun)
+  lang: ipcRenderer.sendSync('app:lang'),
+
   // depo
   getStore: () => ipcRenderer.invoke('store:get'),
   onStoreChanged: on('store:changed'),
@@ -48,8 +51,9 @@ contextBridge.exposeInMainWorld('api', {
   sftpRealpath: (pane, p) => ipcRenderer.invoke('sftp:realpath', { pane, p }),
   sftpList: (pane, dir) => ipcRenderer.invoke('sftp:list', { pane, dir }),
   sftpStat: (pane, p) => ipcRenderer.invoke('sftp:stat', { pane, p }),
-  sftpDownload: (o) => ipcRenderer.invoke('sftp:download', o), // { pane, remotePath, isDir, localDir }
-  sftpUpload: (o) => ipcRenderer.invoke('sftp:upload', o),     // { pane, localPath, remoteDir }
+  sftpDownload: (o) => ipcRenderer.invoke('sftp:download', o), // { pane, id, remotePath, isDir, localDir }
+  sftpUpload: (o) => ipcRenderer.invoke('sftp:upload', o),     // { pane, id, localPath, remoteDir }
+  transferCancel: (id) => ipcRenderer.send('transfer:cancel', id),
   sftpMkdir: (pane, p) => ipcRenderer.invoke('sftp:mkdir', { pane, p }),
   sftpRename: (pane, from, to) => ipcRenderer.invoke('sftp:rename', { pane, from, to }),
   sftpDelete: (pane, p, isDir) => ipcRenderer.invoke('sftp:delete', { pane, p, isDir }),

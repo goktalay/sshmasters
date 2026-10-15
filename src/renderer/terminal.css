@@ -5,11 +5,11 @@
 .sidebar {
   display: flex; flex-direction: column; flex: none;
   width: 300px; min-width: 170px;
-  background: var(--bg-2); border-right: 1px solid var(--border);
+  background: var(--bg-2); border-inline-end: 1px solid var(--border);
   overflow: hidden;
 }
 .pane.no-sidebar .sidebar, .pane.no-sidebar .vsplit { display: none; }
-.pane-head .sb-toggle { margin-left: -6px; }
+.pane-head .sb-toggle { margin-inline-start: -6px; }
 .pane-head .sb-toggle.active { color: var(--accent); }
 .pane-term { min-width: 150px; }
 
@@ -81,7 +81,7 @@
 .err-note { padding: 12px; color: var(--err); font-size: 12px; line-height: 1.5; }
 
 /* --- Terminal alanı ------------------------------------------------------- */
-.term-area { flex: 1; min-width: 0; display: flex; flex-direction: column; background: #0b0f17; }
+.term-area { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--bg); }
 .term-bar {
   height: 38px; flex: none; display: flex; align-items: center; gap: 10px; padding: 0 10px 0 6px;
   border-bottom: 1px solid var(--border); background: var(--bg-2);
@@ -110,7 +110,7 @@
   flex: 1 1 0; min-width: 120px; min-height: 80px;
   display: flex; flex-direction: column;
   overflow: hidden;
-  background: #0b0f17;
+  background: var(--bg);
 }
 /* Aktif bölme: başlığın altında bağlantı renginde ince çizgi */
 .panes.multi .pane.active .pane-head { box-shadow: inset 0 -2px 0 var(--c, var(--accent)); }
@@ -121,11 +121,11 @@
   background: var(--bg-2); border-bottom: 1px solid var(--border);
   font-size: 12.5px;
 }
-.pane-head::before { content: ''; width: 3px; height: 14px; border-radius: 2px; background: var(--c, var(--accent)); margin-left: -4px; }
+.pane-head::before { content: ''; width: 3px; height: 14px; border-radius: 2px; background: var(--c, var(--accent)); margin-inline-start: -4px; }
 .pane:not(.active) .pane-head { opacity: .72; }
 .pane-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pane-sub { color: var(--text-3); font-family: var(--mono); font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
-.pane-actions { margin-left: auto; display: flex; flex: none; }
+.pane-actions { margin-inline-start: auto; display: flex; flex: none; }
 .pane-actions .icon-btn { width: 24px; height: 24px; }
 .pane-actions .icon-btn svg.i { width: 14px; height: 14px; }
 .pane-actions .icon-btn.close:hover { color: var(--err); }
@@ -141,8 +141,41 @@
 .picker-item:hover, .picker-item.focus { background: var(--surface-2); border-color: var(--border); }
 .picker-item .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c); flex: none; }
 .picker-item .nm { font-weight: 600; }
-.picker-item .sub { color: var(--text-3); font-family: var(--mono); font-size: 11.5px; margin-left: auto; }
+.picker-item .sub { color: var(--text-3); font-family: var(--mono); font-size: 11.5px; margin-inline-start: auto; }
 /* xterm: kaydırma çubuğu yalnızca geçmiş satır varken görünür (iz şeffaf) */
 .xterm .xterm-viewport { background-color: transparent !important; }
 
 .places { min-width: 220px; }
+
+/* --- Aktarımlar (arka plan) bölümü ---------------------------------------- */
+.panel.transfers-panel { flex: 0 1 auto !important; max-height: 45%; border-top: 1px solid var(--border); }
+.transfers-panel .panel-body { flex: 0 1 auto; }
+.panel-title .badge {
+  display: inline-grid; place-items: center; min-width: 18px; height: 16px; padding: 0 5px; margin-inline-start: 4px;
+  border-radius: 8px; background: var(--accent-grad); color: var(--on-accent); font-size: 10.5px; letter-spacing: 0;
+}
+.tr-item { padding: 7px 10px 8px; border-bottom: 1px solid var(--border); }
+.tr-item:last-child { border-bottom: none; }
+.tr-top { display: flex; align-items: center; gap: 7px; }
+.tr-ico { display: inline-flex; color: var(--accent); }
+.tr-ico svg.i { width: 14px; height: 14px; }
+.tr-item.done .tr-ico { color: var(--ok); }
+.tr-item.error .tr-ico, .tr-item.cancelled .tr-ico { color: var(--err); }
+.tr-name { flex: 1; min-width: 0; font-size: 12.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tr-cancel.icon-btn { width: 22px; height: 22px; }
+.tr-cancel.icon-btn:hover { color: var(--err); }
+.tr-item .progress { margin-top: 5px; }
+.tr-item.done .progress > div { background: var(--ok); }
+.tr-item.error .progress > div, .tr-item.cancelled .progress > div { background: var(--err); }
+.tr-stats { margin-top: 4px; font-size: 11px; color: var(--text-3); font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* --- Aktarım ilerleme penceresi ------------------------------------------- */
+.transfer-dialog { width: min(520px, calc(100vw - 32px)); }
+.transfer-dialog h2 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tr-dlg-row { display: flex; align-items: center; gap: 12px; }
+.progress.big { flex: 1; height: 8px; margin: 0; }
+.tr-pct { font-weight: 700; font-variant-numeric: tabular-nums; min-width: 44px; text-align: end; }
+.tr-dlg-stats { color: var(--text-2); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.tr-dlg-current { color: var(--text-3); font-family: var(--mono); font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-height: 15px; direction: ltr; text-align: start; }
+
+[dir="rtl"] .panel.collapsed .panel-toggle svg.i { transform: rotate(90deg); }

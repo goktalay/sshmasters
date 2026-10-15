@@ -47,6 +47,9 @@ Sürüm numarası etiketten alınır (`package.json`'ı elle değiştirmek gerek
   1. **Kısayollar** — çift tıklayınca komut imlecin olduğu yere yazılır (isteğe bağlı otomatik Enter), sürükleyerek sıralama.
   2. **Sunucu dosyaları (SFTP)** — gezinme, terminal klasörünü takip etme, sağ tık → **İndir** (alttaki Windows klasörüne), yeniden adlandır, sil, yeni klasör.
   3. **Bilgisayarım** — Windows klasörleri/sürücüler, sağ tık → **Yükle** (üstteki sunucu klasörüne). Paneller arasında ve Windows Gezgini'nden sürükle-bırak da desteklenir.
+- **Aktarım ilerlemesi:** büyük indirme/yüklemelerde (5 MB üstü veya 20'den fazla dosya) dosya sayısı, hız ve kalan süreyi gösteren ilerleme penceresi; **Arka planda göster** ile aktarım, bölmenin sol panelinin altındaki daraltılabilir **Aktarımlar** bölümüne geçer. Aktarımlar iptal edilebilir (yarım dosyalar silinir) ve her biri ayrı SFTP kanalında çalıştığı için dosya listesi takılmaz.
+- **Tema:** Gece, Gündüz veya Sistem tercihi (Windows başlık çubukları dahil).
+- **Dil:** Türkçe, English, العربية (sağdan sola), Français, Español, Deutsch, 中文. Varsayılan olarak sistem dili kullanılır; çeviriler `src/i18n.js` içindedir.
 - **Ayarlar:** küçültüldüğünde sistem tepsisinde göster, kapatıldığında tepsiye gizle, terminal yazı boyutu. Tepsi menüsünden klasör yapısına göre hızlı bağlanma.
 - **Güvenlik:** şifreler Windows DPAPI (Electron `safeStorage`) ile şifrelenir; sunucu host anahtarı ilk bağlantıda kaydedilir, değişirse bağlantı reddedilir.
 

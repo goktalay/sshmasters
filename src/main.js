@@ -1,11 +1,17 @@
 'use strict';
 
-const { app, BrowserWindow, ipcMain, safeStorage, shell, dialog, Tray, Menu, nativeImage, clipboard } = require('electron');
+const { app, BrowserWindow, ipcMain, safeStorage, shell, dialog, Tray, Menu, nativeImage, clipboard, nativeTheme } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const crypto = require('crypto');
 const { Client } = require('ssh2');
+const I18N = require('./i18n');
+
+// Arayüz dili: ayarlarda seçilen ya da sistem dili (desteklenmiyorsa İngilizce)
+let t = I18N.createT('en');
+const currentLang = () => (store && store.settings.language) || I18N.resolveLanguage(app.getLocale());
+function applyLanguage() { t = I18N.createT(currentLang()); }
 
 const ICON = path.join(__dirname, '..', 'build', 'icon.png');
 
@@ -18,9 +24,9 @@ const defaultStore = () => ({
   folders: [],      // { id, name, parentId }
   connections: [],  // { id, name, host, port, username, authType, password, keyPath, passphrase, folderId, rememberLastDir, lastDir, color, hostKey }
   shortcuts: [
-    { id: uid(), name: 'Disk kullanımı', command: 'df -h', enter: true },
-    { id: uid(), name: 'Bellek', command: 'free -m', enter: true },
-    { id: uid(), name: 'Süreçler (top)', command: 'top', enter: true },
+    { id: uid(), name: t('main.defDisk'), command: 'df -h', enter: true },
+    { id: uid(), name: t('main.defMem'), command: 'free -m', enter: true },
+    { id: uid(), name: t('main.defTop'), command: 'top', enter: true },
   ],
   settings: {
     localDir: os.homedir(),
@@ -30,6 +36,9 @@ const defaultStore = () => ({
     minimizeToTray: true,  // küçültülünce sistem tepsisine gizle
     closeToTray: false,    // kapat (X) düğmesi uygulamayı tepsiye gizler
     fontSize: 14,          // terminal yazı boyutu
+    appTheme: 'dark',      // 'dark' | 'light' | 'system'
+    language: null,        // null = sistem dili (desteklenmiyorsa İngilizce)
+    transfersInBackground: false, // büyük aktarımlar doğrudan arka planda
   },
 });
 
@@ -40,13 +49,23 @@ function uid() {
 }
 
 function loadStore() {
+  applyLanguage(); // varsayılan veriler sistem dilinde oluşsun
   try {
     store = { ...defaultStore(), ...JSON.parse(fs.readFileSync(storePath(), 'utf8')) };
     store.settings = { ...defaultStore().settings, ...(store.settings || {}) };
   } catch {
     store = defaultStore();
   }
+  applyAppTheme();
+  applyLanguage();
 }
+
+// Gece / Gündüz / Sistem: tüm pencerelerin prefers-color-scheme'ini ve başlık çubuklarını belirler
+function applyAppTheme() {
+  const v = store.settings.appTheme;
+  nativeTheme.themeSource = v === 'light' || v === 'system' ? v : 'dark';
+}
+const windowBg = () => (nativeTheme.shouldUseDarkColors ? '#0b0f17' : '#eef2f7');
 
 let saveTimer = null;
 function saveStore() {
@@ -116,7 +135,7 @@ function buildConnectConfig(conn, onHostKey) {
 // Kayıtlı bağlantının çözülmüş (şifreli alanları açılmış) hali.
 function resolveConnection(id) {
   const c = store.connections.find((x) => x.id === id);
-  if (!c) throw new Error('Bağlantı bulunamadı');
+  if (!c) throw new Error(t('main.errConnNotFound'));
   return { ...c, password: decrypt(c.password), passphrase: decrypt(c.passphrase) };
 }
 
@@ -146,7 +165,7 @@ function connectClient(conn, { onKeyboard } = {}) {
     client.on('ready', () => resolve({ client, fingerprint }));
     client.on('error', (err) => {
       if (hostKeyMismatch) {
-        reject(new Error(`Sunucu host anahtarı değişmiş! Kayıtlı: ${conn.hostKey}, gelen: ${fingerprint}. Güvenlik nedeniyle bağlantı reddedildi.`));
+        reject(new Error(t('main.errHostKey', { old: conn.hostKey, new: fingerprint })));
       } else {
         reject(err);
       }
@@ -171,12 +190,12 @@ function connectClient(conn, { onKeyboard } = {}) {
 
 function friendlyError(err) {
   const msg = (err && err.message) || String(err);
-  if (/All configured authentication methods failed/i.test(msg)) return 'Kimlik doğrulama başarısız: kullanıcı adı veya şifre hatalı.';
-  if (/ECONNREFUSED/i.test(msg)) return 'Bağlantı reddedildi: port kapalı veya SSH servisi çalışmıyor.';
-  if (/ETIMEDOUT|Timed out/i.test(msg)) return 'Zaman aşımı: sunucuya ulaşılamadı.';
-  if (/ENOTFOUND|EAI_AGAIN/i.test(msg)) return 'Sunucu adı çözümlenemedi (DNS).';
-  if (/EHOSTUNREACH|ENETUNREACH/i.test(msg)) return 'Sunucuya ağ üzerinden ulaşılamıyor.';
-  if (/ENOENT/i.test(msg)) return 'Anahtar dosyası bulunamadı.';
+  if (/All configured authentication methods failed/i.test(msg)) return t('main.errAuth');
+  if (/ECONNREFUSED/i.test(msg)) return t('main.errRefused');
+  if (/ETIMEDOUT|Timed out/i.test(msg)) return t('main.errTimeout');
+  if (/ENOTFOUND|EAI_AGAIN/i.test(msg)) return t('main.errDns');
+  if (/EHOSTUNREACH|ENETUNREACH/i.test(msg)) return t('main.errUnreach');
+  if (/ENOENT/i.test(msg)) return t('main.errKeyFile');
   return msg;
 }
 
@@ -199,7 +218,7 @@ function createMainWindow() {
     height: 760,
     minWidth: 760,
     minHeight: 500,
-    backgroundColor: '#0d1117',
+    backgroundColor: windowBg(),
     title: 'SSH Master',
     icon: ICON,
     autoHideMenuBar: true,
@@ -244,8 +263,8 @@ function hideToTray() {
     saveStore();
     tray.displayBalloon({
       iconType: 'info',
-      title: 'SSH Master arka planda çalışıyor',
-      content: 'Tekrar açmak için tepsideki simgeye tıklayın.',
+      title: t('main.balloonTitle'),
+      content: t('main.balloonBody'),
     });
   }
 }
@@ -265,11 +284,11 @@ function buildTrayMenu() {
   };
   const conns = connItems(null);
   return Menu.buildFromTemplate([
-    { label: 'SSH Master’ı göster', click: showMainWindow },
+    { label: t('main.trayShow'), click: showMainWindow },
     { type: 'separator' },
-    { label: 'Hızlı bağlan', submenu: conns.length ? conns : [{ label: 'Kayıtlı bağlantı yok', enabled: false }] },
+    { label: t('main.trayQuick'), submenu: conns.length ? conns : [{ label: t('main.trayNone'), enabled: false }] },
     { type: 'separator' },
-    { label: 'Çıkış', click: () => { isQuitting = true; app.quit(); } },
+    { label: t('main.trayQuit'), click: () => { isQuitting = true; app.quit(); } },
   ]);
 }
 
@@ -303,8 +322,8 @@ function openTerminalWindow(ids) {
     height: ids.length > 2 ? 920 : 800,
     minWidth: 700,
     minHeight: 420,
-    backgroundColor: '#0d1117',
-    title: ids.length > 1 ? `${ids.length} oturum — SSH Master` : `${first.name} — SSH Master`,
+    backgroundColor: windowBg(),
+    title: ids.length > 1 ? `${t('term.sessions', { n: ids.length })} — SSH Master` : `${first.name} — SSH Master`,
     icon: ICON,
     autoHideMenuBar: true,
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false },
@@ -335,7 +354,7 @@ function closeWindowSessions(wcId) {
 
 function getSession(event, pane) {
   const s = sessions.get(skey(event, pane));
-  if (!s) throw new Error('Aktif SSH oturumu yok');
+  if (!s) throw new Error(t('main.errNoSession'));
   return s;
 }
 
@@ -542,73 +561,184 @@ function uniqueLocalPath(p) {
   }
 }
 
-function makeProgress(wc, id, label, total) {
-  let done = 0;
+// ---------------------------------------------------------------------------
+// Aktarımlar: her aktarım kendi SFTP kanalını açar (iptal = kanalı kapatmak),
+// böylece aktarım sürerken dosya listesi de takılmaz.
+// ---------------------------------------------------------------------------
+const transfers = new Map(); // id -> { cancelled, sftp }
+
+function openSftpChannel(s) {
+  return new Promise((resolve, reject) => s.client.sftp((err, sftp) => (err ? reject(err) : resolve(sftp))));
+}
+
+function makeProgress(wc, base) {
+  const state = { ...base, phase: 'scan', total: 0, done: 0, files: 0, fileIndex: 0, current: '' };
   let last = 0;
-  const send = (extra = {}) =>
-    !wc.isDestroyed() && wc.send('transfer:progress', { id, label, total, done, ...extra });
+  const send = () => !wc.isDestroyed() && wc.send('transfer:progress', { ...state });
   return {
+    state,
+    send,
     add(n) {
-      done += n;
+      state.done += n;
       const now = Date.now();
-      if (now - last > 120) {
-        last = now;
-        send();
-      }
+      if (now - last > 150) { last = now; send(); }
     },
-    setLabel(l) { label = l; },
-    finish(error) { send({ finished: true, error: error ? friendlyError(error) : null }); },
-    start() { send(); },
+    file(i, rel) { state.fileIndex = i; state.current = rel; send(); },
+    finish(phase, error) { state.phase = phase; state.error = error || null; send(); },
   };
 }
 
-function fastGet(sftp, remote, local, onStep) {
-  return new Promise((resolve, reject) => {
-    let prev = 0;
-    sftp.fastGet(remote, local, { step: (t) => { onStep(t - prev); prev = t; } }, (err) => (err ? reject(err) : resolve()));
-  });
+// Paralel parça aktarımı (ssh2 fastGet/fastPut ile aynı yaklaşım: 64 eşzamanlı 32 KB istek).
+// Farkı: dosya tanıtıcıları bizde olduğu için iptalde hemen kapatılır; fastGet kanal kapanınca
+// geri dönmüyor ve yerel dosyayı uygulama kapanana kadar açık tutuyordu.
+const CHUNK = 32768;
+const CONCURRENCY = 64;
+
+const sftpRead = (sftp, handle, buf, off, len, pos) =>
+  new Promise((resolve, reject) => sftp.read(handle, buf, off, len, pos, (err, n) => (err ? reject(err) : resolve(n))));
+const sftpWrite = (sftp, handle, buf, off, len, pos) =>
+  new Promise((resolve, reject) => sftp.write(handle, buf, off, len, pos, (err) => (err ? reject(err) : resolve())));
+
+async function parallelChunks(size, job, copyChunk) {
+  let next = 0;
+  const worker = async () => {
+    while (next < size) {
+      if (job.cancelled) throw new Error('cancelled');
+      const pos = next;
+      const len = Math.min(CHUNK, size - pos);
+      next += len;
+      await copyChunk(pos, len);
+    }
+  };
+  const workers = Array.from({ length: Math.min(CONCURRENCY, Math.ceil(size / CHUNK) || 1) }, worker);
+  await Promise.all(workers);
 }
 
-function fastPut(sftp, local, remote, onStep) {
-  return new Promise((resolve, reject) => {
-    let prev = 0;
-    sftp.fastPut(local, remote, { step: (t) => { onStep(t - prev); prev = t; } }, (err) => (err ? reject(err) : resolve()));
-  });
-}
-
-ipcMain.handle('sftp:download', async (event, { pane, remotePath, isDir, localDir }) => {
-  const wc = event.sender;
-  const sftp = await paneSftp(event, pane);
-  const name = posix.basename(remotePath);
-  const id = uid();
-  let progress;
+// Uzak dosyayı yerel yola indir
+async function xferDownload(sftp, remotePath, localPath, onStep, job) {
+  const rh = await sftpCall(sftp, 'open', remotePath, 'r');
+  const fh = await fs.promises.open(localPath, 'w');
+  job.closers.push(() => fh.close().catch(() => {}));
   try {
-    if (!isDir) {
-      const st = await sftpCall(sftp, 'stat', remotePath);
-      isDir = st.isDirectory();
-    }
-    if (isDir) {
-      const { files, dirs } = await remoteWalk(sftp, remotePath);
-      const target = uniqueLocalPath(path.join(localDir, name));
-      progress = makeProgress(wc, id, `İndiriliyor: ${name}`, files.reduce((a, f) => a + f.size, 0));
-      progress.start();
-      for (const d of dirs) fs.mkdirSync(path.join(target, ...d.split('/')), { recursive: true });
-      for (const f of files) {
-        await fastGet(sftp, posix.join(remotePath, f.rel), path.join(target, ...f.rel.split('/')), (n) => progress.add(n));
+    const { size } = await sftpCall(sftp, 'fstat', rh);
+    await parallelChunks(size, job, async (pos, len) => {
+      const buf = Buffer.allocUnsafe(len);
+      let got = 0;
+      while (got < len) { // sunucu istenenden az dönebilir
+        const n = await sftpRead(sftp, rh, buf, got, len - got, pos + got);
+        if (!n) break;
+        got += n;
       }
-    } else {
-      const st = await sftpCall(sftp, 'stat', remotePath);
-      const target = uniqueLocalPath(path.join(localDir, name));
-      progress = makeProgress(wc, id, `İndiriliyor: ${name}`, st.size);
-      progress.start();
-      await fastGet(sftp, remotePath, target, (n) => progress.add(n));
-    }
-    progress.finish();
+      await fh.write(buf, 0, got, pos);
+      onStep(got);
+    });
+  } finally {
+    await fh.close().catch(() => {});
+    sftp.close(rh, () => {});
+  }
+}
+
+// Yerel dosyayı uzak yola yükle
+async function xferUpload(sftp, localPath, remotePath, onStep, job) {
+  const fh = await fs.promises.open(localPath, 'r');
+  job.closers.push(() => fh.close().catch(() => {}));
+  let wh = null;
+  try {
+    const { size } = await fh.stat();
+    wh = await sftpCall(sftp, 'open', remotePath, 'w');
+    await parallelChunks(size, job, async (pos, len) => {
+      const buf = Buffer.allocUnsafe(len);
+      const { bytesRead } = await fh.read(buf, 0, len, pos);
+      await sftpWrite(sftp, wh, buf, 0, bytesRead, pos);
+      onStep(bytesRead);
+    });
+  } finally {
+    await fh.close().catch(() => {});
+    if (wh) sftp.close(wh, () => {});
+  }
+}
+
+async function runTransfer(event, { id, pane, kind, name }, work, cleanup) {
+  const wc = event.sender;
+  const job = { cancelled: false, sftp: null, closers: [] };
+  // İptal, süren parça isteklerini beklemeden aktarımı hemen sonlandırır
+  const cancelled = new Promise((_, reject) => (job.abort = () => reject(new Error('cancelled'))));
+  cancelled.catch(() => {});
+  transfers.set(id, job);
+  const progress = makeProgress(wc, { id, pane, kind, name });
+  progress.send();
+  try {
+    job.sftp = await Promise.race([openSftpChannel(getSession(event, pane)), cancelled]);
+    await Promise.race([work(job.sftp, progress, job), cancelled]);
+    progress.finish('done');
     return { ok: true };
   } catch (err) {
-    if (progress) progress.finish(err);
+    if (job.cancelled) {
+      await retryCleanup(cleanup);
+      progress.finish('cancelled');
+      return { ok: false, cancelled: true };
+    }
+    progress.finish('error', friendlyError(err));
     return { ok: false, message: friendlyError(err) };
+  } finally {
+    transfers.delete(id);
+    job.closers.forEach((close) => close());
+    closeChannel(job.sftp);
   }
+}
+
+const checkCancel = (job) => { if (job.cancelled) throw new Error('cancelled'); };
+
+function closeChannel(sftp) {
+  if (!sftp) return;
+  try { sftp.end(); } catch {}
+  try { sftp.destroy && sftp.destroy(); } catch {}
+}
+
+// Yarım dosya, kapanmakta olan tanıtıcı bırakılana kadar kısa süre kilitli kalabilir; birkaç kez dene
+async function retryCleanup(cleanup) {
+  for (let i = 0; i < 8; i++) {
+    try { await cleanup(); return; } catch { await new Promise((r) => setTimeout(r, 500)); }
+  }
+}
+
+ipcMain.on('transfer:cancel', (_e, id) => {
+  const job = transfers.get(id);
+  if (!job) return;
+  job.cancelled = true;
+  job.closers.forEach((close) => close()); // yerel dosyaları hemen bırak
+  closeChannel(job.sftp);
+  job.abort();
+});
+
+ipcMain.handle('sftp:download', async (event, { pane, id, remotePath, isDir, localDir }) => {
+  const name = posix.basename(remotePath);
+  let target = null;
+  return runTransfer(event, { id, pane, kind: 'download', name }, async (sftp, progress, job) => {
+    const st = await sftpCall(sftp, 'stat', remotePath);
+    isDir = st.isDirectory();
+    target = uniqueLocalPath(path.join(localDir, name));
+    if (isDir) {
+      const { files, dirs } = await remoteWalk(sftp, remotePath);
+      Object.assign(progress.state, { phase: 'transfer', total: files.reduce((a, f) => a + f.size, 0), files: files.length });
+      progress.send();
+      for (const d of dirs) fs.mkdirSync(path.join(target, ...d.split('/')), { recursive: true });
+      for (let i = 0; i < files.length; i++) {
+        checkCancel(job);
+        const f = files[i];
+        progress.file(i + 1, f.rel);
+        await xferDownload(sftp, posix.join(remotePath, f.rel), path.join(target, ...f.rel.split('/')), (n) => progress.add(n), job);
+      }
+    } else {
+      Object.assign(progress.state, { phase: 'transfer', total: st.size, files: 1, fileIndex: 1, current: name });
+      progress.send();
+      await xferDownload(sftp, remotePath, target, (n) => progress.add(n), job);
+    }
+    checkCancel(job);
+  }, async () => {
+    // İptalde yarım inen dosya/klasörü sil (yalnızca bu aktarımın oluşturduğu yeni hedef)
+    if (target) fs.rmSync(target, { recursive: true, force: true });
+  });
 });
 
 async function remoteExists(sftp, p) {
@@ -631,38 +761,45 @@ async function uniqueRemotePath(sftp, p) {
   }
 }
 
-ipcMain.handle('sftp:upload', async (event, { pane, localPath, remoteDir }) => {
-  const wc = event.sender;
-  const sftp = await paneSftp(event, pane);
+async function remoteRemove(sftp, p) {
+  let st;
+  try { st = await sftpCall(sftp, 'lstat', p); } catch { return; }
+  if (!st.isDirectory()) return sftpCall(sftp, 'unlink', p);
+  const { files, dirs } = await remoteWalk(sftp, p);
+  for (const f of files) await sftpCall(sftp, 'unlink', posix.join(p, f.rel));
+  for (const d of dirs.sort((a, b) => b.length - a.length)) await sftpCall(sftp, 'rmdir', d ? posix.join(p, d) : p);
+}
+
+ipcMain.handle('sftp:upload', async (event, { pane, id, localPath, remoteDir }) => {
   const name = path.basename(localPath);
-  const id = uid();
-  let progress;
-  try {
+  let target = null;
+  return runTransfer(event, { id, pane, kind: 'upload', name }, async (sftp, progress, job) => {
     const st = fs.statSync(localPath);
+    target = await uniqueRemotePath(sftp, posix.join(remoteDir, name));
     if (st.isDirectory()) {
       const { files, dirs } = localWalk(localPath);
-      const target = await uniqueRemotePath(sftp, posix.join(remoteDir, name));
-      progress = makeProgress(wc, id, `Yükleniyor: ${name}`, files.reduce((a, f) => a + f.size, 0));
-      progress.start();
+      Object.assign(progress.state, { phase: 'transfer', total: files.reduce((a, f) => a + f.size, 0), files: files.length });
+      progress.send();
       for (const d of dirs) {
         const rp = d ? posix.join(target, ...d.split(path.sep)) : target;
         try { await sftpCall(sftp, 'mkdir', rp); } catch { /* zaten var */ }
       }
-      for (const f of files) {
-        await fastPut(sftp, path.join(localPath, f.rel), posix.join(target, ...f.rel.split(path.sep)), (n) => progress.add(n));
+      for (let i = 0; i < files.length; i++) {
+        checkCancel(job);
+        const f = files[i];
+        progress.file(i + 1, f.rel.split(path.sep).join('/'));
+        await xferUpload(sftp, path.join(localPath, f.rel), posix.join(target, ...f.rel.split(path.sep)), (n) => progress.add(n), job);
       }
     } else {
-      const target = await uniqueRemotePath(sftp, posix.join(remoteDir, name));
-      progress = makeProgress(wc, id, `Yükleniyor: ${name}`, st.size);
-      progress.start();
-      await fastPut(sftp, localPath, target, (n) => progress.add(n));
+      Object.assign(progress.state, { phase: 'transfer', total: st.size, files: 1, fileIndex: 1, current: name });
+      progress.send();
+      await xferUpload(sftp, localPath, target, (n) => progress.add(n), job);
     }
-    progress.finish();
-    return { ok: true };
-  } catch (err) {
-    if (progress) progress.finish(err);
-    return { ok: false, message: friendlyError(err) };
-  }
+    checkCancel(job);
+  }, async () => {
+    // İptalde sunucuya yarım yüklenen hedefi, bölmenin ana SFTP kanalıyla sil
+    if (target) await remoteRemove(await paneSftp(event, pane), target);
+  });
 });
 
 ipcMain.handle('sftp:mkdir', async (event, { pane, p }) => {
@@ -741,6 +878,7 @@ ipcMain.handle('local:mkdir', (_e, p) => fs.promises.mkdir(p));
 // Depo işlemleri
 // ---------------------------------------------------------------------------
 ipcMain.handle('store:get', () => publicStore());
+ipcMain.on('app:lang', (e) => { e.returnValue = currentLang(); });
 
 ipcMain.handle('conn:save', (_e, form) => {
   let c = form.id ? store.connections.find((x) => x.id === form.id) : null;
@@ -782,7 +920,7 @@ ipcMain.handle('conn:delete', (_e, id) => {
 ipcMain.handle('conn:duplicate', (_e, id) => {
   const c = store.connections.find((x) => x.id === id);
   if (!c) return;
-  store.connections.push({ ...c, id: uid(), name: c.name + ' (kopya)', createdAt: Date.now(), lastDir: '' });
+  store.connections.push({ ...c, id: uid(), name: c.name + t('main.copySuffix'), createdAt: Date.now(), lastDir: '' });
   saveStore();
   broadcastStore();
 });
@@ -810,7 +948,7 @@ ipcMain.handle('conn:resetLastDir', (_e, id) => {
 
 ipcMain.handle('conn:test', async (_e, form) => {
   const conn = mergeFormWithStored(form);
-  if (!conn.host || !conn.username) return { ok: false, message: 'Sunucu adresi ve kullanıcı adı gerekli.' };
+  if (!conn.host || !conn.username) return { ok: false, message: t('main.errHostUser') };
   const started = Date.now();
   try {
     const { client, fingerprint } = await connectClient(conn);
@@ -834,7 +972,7 @@ ipcMain.handle('conn:open', (_e, ids) => openTerminalWindow(ids));
 
 ipcMain.handle('dialog:pickKey', async (event) => {
   const res = await dialog.showOpenDialog(BrowserWindow.fromWebContents(event.sender), {
-    title: 'Özel anahtar dosyası seç',
+    title: t('main.pickKey'),
     defaultPath: path.join(os.homedir(), '.ssh'),
     properties: ['openFile', 'showHiddenFiles'],
   });
@@ -905,7 +1043,13 @@ ipcMain.handle('shortcut:reorder', (_e, ids) => {
 ipcMain.handle('settings:set', (_e, patch) => {
   Object.assign(store.settings, patch);
   saveStore();
-  if ('fontSize' in patch || 'minimizeToTray' in patch || 'closeToTray' in patch) broadcastStore();
+  if ('appTheme' in patch) applyAppTheme();
+  if ('language' in patch) {
+    applyLanguage();
+    if (tray) tray.setContextMenu(buildTrayMenu());
+    if (mainWindow) mainWindow.webContents.reload();
+  }
+  if (['fontSize', 'minimizeToTray', 'closeToTray', 'appTheme', 'language', 'transfersInBackground'].some((k) => k in patch)) broadcastStore();
 });
 
 // ---------------------------------------------------------------------------

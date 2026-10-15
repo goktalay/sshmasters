@@ -20,6 +20,36 @@
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
   --font: 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, sans-serif;
   --mono: 'Cascadia Code', 'Cascadia Mono', Consolas, 'Courier New', monospace;
+  --topbar-bg: rgba(11, 15, 23, .6);
+  --card-shadow: rgba(0, 0, 0, .3);
+  --on-accent: #04111c;
+  color-scheme: dark;
+}
+
+/* Gündüz teması: ayarlardaki seçim Electron nativeTheme ile prefers-color-scheme'e yansır */
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #eef2f7;
+    --bg-2: #f8fafc;
+    --surface: #ffffff;
+    --surface-2: #f1f5f9;
+    --surface-3: #e2e8f0;
+    --border: #d9e0ea;
+    --border-strong: #c3cdda;
+    --text: #0f172a;
+    --text-2: #475569;
+    --text-3: #7b8799;
+    --accent: #0891b2;
+    --accent-2: #4f46e5;
+    --accent-grad: linear-gradient(135deg, #22d3ee 0%, #6366f1 100%);
+    --ok: #059669;
+    --warn: #d97706;
+    --err: #dc2626;
+    --shadow: 0 10px 30px rgba(15, 23, 42, .14);
+    --topbar-bg: rgba(255, 255, 255, .72);
+    --card-shadow: rgba(15, 23, 42, .10);
+    color-scheme: light;
+  }
 }
 
 * { box-sizing: border-box; }
@@ -67,7 +97,7 @@ svg.i { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none;
 .btn:hover { background: var(--surface-3); border-color: var(--border-strong); }
 .btn:active { transform: translateY(1px); }
 .btn:disabled { opacity: .5; cursor: default; }
-.btn.primary { background: var(--accent-grad); border: none; color: #04111c; font-weight: 600; }
+.btn.primary { background: var(--accent-grad); border: none; color: var(--on-accent); font-weight: 600; }
 .btn.primary:hover { filter: brightness(1.08); }
 .btn.ghost { background: transparent; border-color: transparent; }
 .btn.ghost:hover { background: var(--surface-2); }
@@ -94,7 +124,7 @@ svg.i { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none;
 .input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(34, 211, 238, .15); }
 .input.invalid { border-color: var(--err); }
 textarea.input { height: auto; padding: 10px 12px; resize: vertical; min-height: 70px; font-family: var(--mono); font-size: 12.5px; }
-select.input { padding-right: 6px; }
+select.input { padding-inline-end: 6px; }
 select.input option { background: var(--surface); }
 
 .check { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
@@ -139,25 +169,25 @@ select.input option { background: var(--surface); }
 }
 .ctx button {
   display: flex; align-items: center; gap: 10px; width: 100%;
-  padding: 7px 10px; border: none; border-radius: 6px; background: none; cursor: pointer; text-align: left;
+  padding: 7px 10px; border: none; border-radius: 6px; background: none; cursor: pointer; text-align: start;
 }
 .ctx button:hover { background: var(--surface-3); }
 .ctx button.danger { color: var(--err); }
 .ctx button:disabled { opacity: .4; cursor: default; background: none; }
 .ctx hr { border: none; border-top: 1px solid var(--border); margin: 4px 2px; }
-.ctx .kbd { margin-left: auto; color: var(--text-3); font-size: 11.5px; }
+.ctx .kbd { margin-inline-start: auto; color: var(--text-3); font-size: 11.5px; }
 
 /* --- Bildirimler --------------------------------------------------------- */
-.toasts { position: fixed; right: 16px; bottom: 16px; z-index: 120; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
+.toasts { position: fixed; inset-inline-end: 16px; bottom: 16px; z-index: 120; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
 .toast {
   display: flex; align-items: center; gap: 10px;
   min-width: 260px; max-width: 420px; padding: 10px 14px;
-  background: var(--surface-2); border: 1px solid var(--border-strong); border-left: 3px solid var(--accent);
+  background: var(--surface-2); border: 1px solid var(--border-strong); border-inline-start: 3px solid var(--accent);
   border-radius: 10px; box-shadow: var(--shadow);
   animation: pop .18s ease-out;
 }
-.toast.ok { border-left-color: var(--ok); }
-.toast.err { border-left-color: var(--err); }
+.toast.ok { border-inline-start-color: var(--ok); }
+.toast.err { border-inline-start-color: var(--err); }
 .toast .t-body { flex: 1; min-width: 0; }
 .toast .t-title { font-weight: 600; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .toast .t-sub { color: var(--text-3); font-size: 11.5px; margin-top: 2px; }
@@ -170,7 +200,7 @@ select.input option { background: var(--surface); }
 .theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 8px; }
 .theme-card {
   padding: 0; border: 1.5px solid var(--border); border-radius: 9px; background: var(--bg-2);
-  cursor: pointer; overflow: hidden; text-align: left; transition: border-color .15s, transform .1s;
+  cursor: pointer; overflow: hidden; text-align: start; transition: border-color .15s, transform .1s;
 }
 .theme-card:hover { border-color: var(--border-strong); transform: translateY(-1px); }
 .theme-card.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
@@ -179,3 +209,13 @@ select.input option { background: var(--surface); }
 .tp-sw i { width: 12px; height: 6px; border-radius: 2px; display: block; }
 .tp-name { font-size: 11.5px; padding: 5px 8px; color: var(--text-2); border-top: 1px solid var(--border); }
 .theme-card.on .tp-name { color: var(--text); font-weight: 600; }
+.seg button { display: inline-flex; align-items: center; gap: 6px; }
+.seg button svg.i { width: 14px; height: 14px; }
+
+/* --- Sağdan sola diller (Arapça) ------------------------------------------- */
+/* Terminal içeriği, yollar, sunucu adresleri ve komutlar her zaman soldan sağa */
+[dir="rtl"] .xterm, [dir="rtl"] .path-input, [dir="rtl"] .card-sub, [dir="rtl"] .pane-sub,
+[dir="rtl"] .tp-screen, [dir="rtl"] .sc-cmd, [dir="rtl"] .tag.dir, [dir="rtl"] .fp,
+[dir="rtl"] textarea.input, [dir="rtl"] input[spellcheck="false"], [dir="rtl"] .picker-item .sub { direction: ltr; }
+[dir="rtl"] .path-input, [dir="rtl"] input[spellcheck="false"] { text-align: right; }
+[dir="rtl"] .crumb-sep svg.i, [dir="rtl"] .item svg.i[data-flip] { transform: scaleX(-1); }

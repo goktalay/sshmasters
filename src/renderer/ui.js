@@ -2,6 +2,12 @@
 
 // Ortak arayüz yardımcıları (ana pencere ve terminal penceresi)
 
+// --- Dil ------------------------------------------------------------------------
+const LANG = window.api.lang || 'en';
+const t = I18N.createT(LANG);
+document.documentElement.lang = LANG;
+document.documentElement.dir = (I18N.LANGUAGES[LANG] || {}).dir || 'ltr';
+
 const ICONS = {
   plus: '<path d="M12 5v14M5 12h14"/>',
   folder: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
@@ -38,7 +44,9 @@ const ICONS = {
   palette: '<path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.8-.8 1.8-1.7 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-.9.8-1.7 1.7-1.7H16a5 5 0 0 0 5-5c0-4-4-7.2-9-7.2z"/><circle cx="7.5" cy="11" r="1.2"/><circle cx="10.5" cy="7" r="1.2"/><circle cx="15" cy="7.5" r="1.2"/>',
   columns:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16"/>',
   rows: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 12h18"/>',
-  gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
+  moon: '<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
   reconnect:'<path d="M4 4v6h6M20 20v-6h-6"/><path d="M20 10a8 8 0 0 0-14.3-4.3L4 10M4 14a8 8 0 0 0 14.3 4.3L20 14"/>',
 };
 
@@ -55,18 +63,19 @@ function formatSize(n) {
   const u = ['B', 'KB', 'MB', 'GB', 'TB'];
   let i = 0;
   while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; }
-  return `${n < 10 && i ? n.toFixed(1) : Math.round(n)} ${u[i]}`;
+  // LRI…PDI: sağdan sola dillerde "400 MB" ters ("MB 400") görünmesin
+  return `⁦${n < 10 && i ? n.toFixed(1) : Math.round(n)} ${u[i]}⁩`;
 }
 
 function formatDate(ms) {
   if (!ms) return '';
-  return new Date(ms).toLocaleString('tr-TR', { dateStyle: 'short', timeStyle: 'short' });
+  return new Date(ms).toLocaleString(LANG, { dateStyle: 'short', timeStyle: 'short' });
 }
 
 function h(html) {
-  const t = document.createElement('template');
-  t.innerHTML = html.trim();
-  return t.content.firstElementChild;
+  const tpl = document.createElement('template');
+  tpl.innerHTML = html.trim();
+  return tpl.content.firstElementChild;
 }
 
 // --- Bağlam menüsü ------------------------------------------------------------
@@ -148,24 +157,24 @@ function openModal({ title, iconName, body, buttons = [], width, onMount }) {
   });
 }
 
-async function prompt(title, { label = '', value = '', placeholder = '', okText = 'Tamam', iconName = 'edit' } = {}) {
+async function prompt(title, { label = '', value = '', placeholder = '', okText = t('common.ok'), iconName = 'edit' } = {}) {
   return openModal({
     title, iconName,
     body: `<div class="field"><label>${esc(label)}</label><input class="input" id="pv" value="${esc(value)}" placeholder="${esc(placeholder)}"></div>`,
     buttons: [
-      { label: 'İptal', value: null },
+      { label: t('common.cancel'), value: null },
       { label: okText, cls: 'primary', onClick: (m) => { const v = m.querySelector('#pv').value.trim(); if (!v) { m.querySelector('#pv').classList.add('invalid'); return false; } return v; } },
     ],
     onMount: (m) => { const i = m.querySelector('#pv'); setTimeout(() => i.select(), 40); },
   });
 }
 
-async function confirmBox(title, message, { okText = 'Sil', danger = true } = {}) {
+async function confirmBox(title, message, { okText = t('common.delete'), danger = true } = {}) {
   return openModal({
     title, iconName: danger ? 'trash' : 'check',
     body: `<div style="color:var(--text-2);line-height:1.5">${message}</div>`,
     buttons: [
-      { label: 'Vazgeç', value: false },
+      { label: t('common.giveUp'), value: false },
       { label: okText, cls: danger ? 'primary danger-primary' : 'primary', value: true },
     ],
   });

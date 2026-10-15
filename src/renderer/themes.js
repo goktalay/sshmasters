@@ -64,7 +64,7 @@ const TERMINAL_THEMES = {
     brightBlack: '#586e75', brightRed: '#cb4b16', brightGreen: '#586e75', brightYellow: '#657b83', brightBlue: '#839496', brightMagenta: '#6c71c4', brightCyan: '#93a1a1', brightWhite: '#fdf6e3',
   },
   matrix: {
-    name: 'Matrix (yeşil)',
+    name: t('theme.matrix'),
     background: '#000000', foreground: '#33ff66', cursor: '#33ff66', cursorAccent: '#000000', selectionBackground: 'rgba(51,255,102,0.25)',
     black: '#000000', red: '#1f9e3f', green: '#33ff66', yellow: '#7dff9b', blue: '#1fbf55', magenta: '#2bd965', cyan: '#5dff88', white: '#b3ffc6',
     brightBlack: '#0f5c24', brightRed: '#33cc5a', brightGreen: '#66ff8c', brightYellow: '#99ffb3', brightBlue: '#33e070', brightMagenta: '#4dff7f', brightCyan: '#80ffa6', brightWhite: '#e6ffec',
@@ -88,11 +88,11 @@ const getTheme = (key) => TERMINAL_THEMES[key] || TERMINAL_THEMES[DEFAULT_THEME]
 
 // Küçük terminal önizlemesi (palet seçicide kullanılır)
 function themePreviewHtml(key) {
-  const t = getTheme(key);
-  const sw = ['red', 'green', 'yellow', 'blue', 'magenta', 'cyan'].map((c) => `<i style="background:${t[c]}"></i>`).join('');
-  return `<div class="tp-screen" style="background:${t.background};color:${t.foreground}">
-      <div><span style="color:${t.green}">user@host</span>:<span style="color:${t.blue}">~</span>$ ls</div>
-      <div><span style="color:${t.blue}">docs</span> <span style="color:${t.green}">run.sh</span> <span style="color:${t.red}">err.log</span></div>
+  const th = getTheme(key);
+  const sw = ['red', 'green', 'yellow', 'blue', 'magenta', 'cyan'].map((c) => `<i style="background:${th[c]}"></i>`).join('');
+  return `<div class="tp-screen" style="background:${th.background};color:${th.foreground}">
+      <div><span style="color:${th.green}">user@host</span>:<span style="color:${th.blue}">~</span>$ ls</div>
+      <div><span style="color:${th.blue}">docs</span> <span style="color:${th.green}">run.sh</span> <span style="color:${th.red}">err.log</span></div>
       <div class="tp-sw">${sw}</div>
     </div>
     <div class="tp-name">${esc(t.name)}</div>`;

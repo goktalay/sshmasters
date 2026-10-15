@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:">
+  <title>SSH Master</title>
+  <link rel="stylesheet" href="common.css">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <img src="../../build/icon.png" alt="">
+        <div>
+          <div class="brand-name">SSH Master</div>
+          <div class="brand-sub" id="stats"></div>
+        </div>
+      </div>
+      <div class="search">
+        <span class="search-ico"></span>
+        <input id="search" placeholder="Bağlantılarda ara…  (Ctrl+F)" spellcheck="false">
+      </div>
+      <div class="actions">
+        <button class="btn hidden" id="btnSplit" title="Seçili bağlantıları tek pencerede bölünmüş aç"></button>
+        <button class="btn ghost" id="btnSettings" title="Ayarlar"></button>
+        <button class="btn" id="btnNewFolder"></button>
+        <button class="btn primary" id="btnNewConn"></button>
+      </div>
+    </header>
+
+    <nav class="crumbs" id="crumbs"></nav>
+
+    <main class="content" id="content">
+      <div class="grid" id="grid"></div>
+    </main>
+  </div>
+
+  <script src="ui.js"></script>
+  <script src="themes.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

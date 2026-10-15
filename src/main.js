@@ -1002,7 +1002,7 @@ ipcMain.handle('account:openWeb', (_e, page) => {
   const allowed = { forgot: '/sifremi-unuttum', register: '/kayit', account: '/hesabim' };
   if (!allowed[page]) return;
   // Mastertool standardı: hesap sayfaları uygulamanın diliyle ve o anki temasıyla açılır
-  const q = new URLSearchParams({ lang: currentLang(), theme: nativeTheme.shouldUseDarkColors ? 'dark' : 'light', app: 'sshmaster' });
+  const q = new URLSearchParams({ lang: currentLang(), theme: nativeTheme.shouldUseDarkColors ? 'dark' : 'light', app: 'sm' }); // Mastertool uygulama kodları: sm, fm, sq, np, cv
   shell.openExternal(`${require('./account').API_BASE}${allowed[page]}?${q}`);
 });
 ipcMain.on('app:lang', (e) => { e.returnValue = currentLang(); });

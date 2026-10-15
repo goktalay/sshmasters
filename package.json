@@ -60,7 +60,7 @@
       "createDesktopShortcut": true,
       "shortcutName": "SSH Master",
       "include": "build/installer.nsh",
-      "menuCategory": "Mastertool"
+      "menuCategory": "Master Tool"
     },
     "portable": {
       "artifactName": "SSH-Master-Portable-${version}.exe"

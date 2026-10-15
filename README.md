@@ -15,7 +15,7 @@ npm start
 npm run dist
 ```
 
-Kurulum varsayılan olarak `%LOCALAPPDATA%\Programs\Mastertool\SSH Master` (tüm kullanıcılar için `C:\Program Files\Mastertool\SSH Master`) klasörüne yapılır ve Başlat menüsünde **Mastertool › SSH Master** olarak görünür; eski klasördeki bir sürümden yükseltmede eski klasör temizlenir (`build/installer.nsh`).
+Kurulum varsayılan olarak `%LOCALAPPDATA%\Programs\Mastertool\SSH Master` (tüm kullanıcılar için `C:\Program Files\Mastertool\SSH Master`) klasörüne yapılır ve Başlat menüsünde **Master Tool › SSH Master** olarak görünür; eski klasördeki bir sürümden yükseltmede eski klasör temizlenir (`build/installer.nsh`).
 
 `dist/` altında kurulum (`SSH Master Setup x.y.z.exe`) ve taşınabilir (`SSH-Master-Portable-x.y.z.exe`) sürüm oluşur.
 
@@ -56,7 +56,7 @@ Sürüm numarası etiketten alınır (`package.json`'ı elle değiştirmek gerek
 - **Aktarım ilerlemesi:** büyük indirme/yüklemelerde (5 MB üstü veya 20'den fazla dosya) dosya sayısı, hız ve kalan süreyi gösteren ilerleme penceresi; **Arka planda göster** ile aktarım, bölmenin sol panelinin altındaki daraltılabilir **Aktarımlar** bölümüne geçer. Aktarımlar iptal edilebilir (yarım dosyalar silinir) ve her biri ayrı SFTP kanalında çalıştığı için dosya listesi takılmaz.
 - **Tema:** Gece, Gündüz veya Sistem tercihi (varsayılan: Sistem; Windows başlık çubukları dahil).
 - **Dil:** Türkçe, English, Français, Deutsch, Español, العربية (sağdan sola), 中文, Русский (Mastertool ailesinin ortak 8 dili ve sırası). Varsayılan olarak sistem dili, bulunamazsa İngilizce kullanılır; çeviriler `src/i18n.js` içindedir.
-- **Ayarlar (Mastertool ortak iskeleti):** **Genel** (dil, tema, başlangıç: Windows oturumu açılınca başlat, tepsiye küçült, kapatınca tepsiye gizle) · **Hesap** (e-posta, senkron aç/kapat, son senkron, şimdi senkronize et, sunucu kopyasını sil, Hesabım, çıkış) · **Terminal** · **Dosya aktarımları** · **Hakkında** (sürüm, güncellemeleri denetle, açık kaynak lisansları). Hesap sayfaları `?lang=&theme=&app=sshmaster` ile uygulamanın diliyle ve temasıyla açılır. Tepsi menüsünden klasör yapısına göre hızlı bağlanma.
+- **Ayarlar (Mastertool ortak iskeleti):** **Genel** (dil, tema, başlangıç: Windows oturumu açılınca başlat, tepsiye küçült, kapatınca tepsiye gizle) · **Hesap** (e-posta, senkron aç/kapat, son senkron, şimdi senkronize et, sunucu kopyasını sil, Hesabım, çıkış) · **Terminal** · **Dosya aktarımları** · **Hakkında** (sürüm, güncellemeleri denetle, açık kaynak lisansları). Hesap sayfaları `?lang=&theme=&app=sm` ile uygulamanın diliyle ve temasıyla açılır. Tepsi menüsünden klasör yapısına göre hızlı bağlanma.
 - **Güvenlik:** şifreler Windows DPAPI (Electron `safeStorage`) ile şifrelenir; sunucu host anahtarı ilk bağlantıda kaydedilir, değişirse bağlantı reddedilir.
 
 Veriler `%APPDATA%\SSH Master\store.json` içinde tutulur.

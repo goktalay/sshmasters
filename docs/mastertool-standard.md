@@ -101,11 +101,11 @@ about.chromium     Chromium lisanslarını aç
 
 ```js
 const allowed = { forgot: '/sifremi-unuttum', register: '/kayit', account: '/hesabim' };
-const q = new URLSearchParams({ lang: currentLang(), theme: nativeTheme.shouldUseDarkColors ? 'dark' : 'light', app: '<uygulama-kodu>' });
+const q = new URLSearchParams({ lang: currentLang(), theme: nativeTheme.shouldUseDarkColors ? 'dark' : 'light', app: '<kod>' }); // sm, fm, sq, np, cv
 shell.openExternal(`${API_BASE}${allowed[page]}?${q}`);
 ```
 
-`theme` her zaman o anki gerçek temadır (`system` gönderilmez).
+`theme` her zaman o anki gerçek temadır (`system` gönderilmez). `app` kısa uygulama kodudur: SSH Master `sm`, FTP Masters `fm`, SQL Master `sq`, Notepad Master `np`, Convert Master `cv`.
 
 ## Mastertool düğmesi
 
@@ -114,4 +114,4 @@ Ana pencerenin üst çubuğunda ve giriş ekranında. `https://mastertool.downlo
 ## Kurulum
 
 `build/installer.nsh` + package.json `build.nsis`:
-`oneClick: false`, `allowToChangeInstallationDirectory: true`, `include: "build/installer.nsh"`, `menuCategory` (Başlat menüsü klasörü). Varsayılan kurulum: `Program Files\Mastertool\<Uygulama>`; eski konumdaki kurulum yükseltmede kaldırılır.
+`oneClick: false`, `allowToChangeInstallationDirectory: true`, `include: "build/installer.nsh"`, `menuCategory: "Master Tool"` (Başlat menüsü klasörü, boşluklu). Varsayılan kurulum: `Program Files\Mastertool\<Uygulama>`; eski konumdaki kurulum yükseltmede kaldırılır.

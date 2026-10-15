@@ -1,7 +1,7 @@
 ; Tüm Mastertool uygulamaları aynı yere kurulur:
 ;   tüm kullanıcılar: C:\Program Files\Mastertool\<Uygulama>
 ;   yalnız bu kullanıcı: %LOCALAPPDATA%\Programs\Mastertool\<Uygulama>
-; Başlat menüsü: Mastertool › <Uygulama> (package.json → build.nsis.menuCategory).
+; Başlat menüsü: Master Tool › <Uygulama> (package.json → build.nsis.menuCategory).
 
 !include "FileFunc.nsh"
 

@@ -57,7 +57,7 @@
   DeleteRegKey /ifempty SHELL_CONTEXT "Software\Mastertool"
 !macroend
 
-; Kaldırmada geriye boş "SSH Master" ve (başka Mastertool uygulaması kalmadıysa) boş "Mastertool"
+; Kaldırmada geriye boş uygulama klasörü ve (başka Mastertool uygulaması kalmadıysa) boş "Mastertool"
 ; klasörü kalmasın. RMDir /r değil: yalnız boş klasörleri siler, diğer uygulamalara dokunmaz.
 ; Kaldırıcının çalışma klasörü kurulum klasörü olduğundan önce oradan çıkılır (aksi halde silinemez).
 !macro customUnInstall

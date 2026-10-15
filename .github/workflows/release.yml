@@ -1,0 +1,48 @@
+# Windows exe'lerini derler.
+# - "v1.2.3" gibi bir etiket gönderilince: sürümü etiketten alır, derler ve GitHub Release'e ekler.
+# - Actions sekmesinden elle çalıştırılınca (workflow_dispatch): yalnızca derler, exe'leri "artifact" olarak saklar.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Sürümü etiketten al
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: npm version "${GITHUB_REF_NAME#v}" --no-git-tag-version --allow-same-version
+
+      - run: npm ci
+
+      - name: Exe'leri derle
+        run: npx electron-builder --win --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SSH-Master-windows
+          path: dist/*.exe
+          retention-days: 14
+
+      - name: Release'e ekle
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.exe
+          generate_release_notes: true

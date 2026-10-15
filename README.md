@@ -20,6 +20,20 @@ npm run dist
 > Not: NSIS 260 karakterden uzun yolları desteklemez. Proje çok derin bir klasördeyse kısa bir yola (ör. `C:\dev\ssh-master`) taşıyıp derleyin.
 > electron-builder'ın imzalama paketi açılırken "Cannot create symbolic link" hatası alırsanız Windows'ta Geliştirici Modu'nu açın veya derlemeyi yönetici olarak çalıştırın.
 
+### GitHub üzerinden sürüm yayınlama
+
+Derlenmiş exe'ler [Releases](https://github.com/goktalay/sshmasters/releases) sayfasından indirilir. Yeni sürüm için bir etiket göndermek yeterli; GitHub Actions exe'leri derleyip Release'e ekler:
+
+```bash
+git tag v1.0.1
+```
+
+```bash
+git push origin v1.0.1
+```
+
+Sürüm numarası etiketten alınır (`package.json`'ı elle değiştirmek gerekmez). Actions sekmesinden "Release" iş akışını elle çalıştırırsanız yalnızca derler ve exe'leri indirilebilir "artifact" olarak saklar.
+
 İkonu değiştirmek için `build/icon.svg` dosyasını düzenleyip `npm run icon` çalıştırın.
 
 ## Özellikler

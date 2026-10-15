@@ -1,0 +1,14 @@
+[
+  {"file": "01-ana-ekran-gece.png", "theme": "dark", "title": "Ana ekran", "caption": "Bağlantı kartları ve klasörler tek bakışta"},
+  {"file": "02-ana-ekran-gunduz.png", "theme": "light", "title": "Ana ekran", "caption": "Gündüz temasında bağlantı kartları ve klasörler"},
+  {"file": "03-bolunmus-terminal-gece.png", "theme": "dark", "title": "Bölünmüş terminal", "caption": "Dört sunucu tek pencerede; yazdığınız komut tüm bölmelere gider"},
+  {"file": "04-bolunmus-terminal-gunduz.png", "theme": "light", "title": "Bölünmüş terminal", "caption": "Her bağlantı kendi konsol renk paletiyle açılır"},
+  {"file": "05-dosya-yonetimi-gece.png", "theme": "dark", "title": "Dosya yönetimi", "caption": "Kısayollar, sunucu dosyaları ve Bilgisayarım terminalin yanında"},
+  {"file": "06-dosya-yonetimi-gunduz.png", "theme": "light", "title": "Dosya yönetimi", "caption": "Sağ tıkla indir, sağ tıkla yükle; terminal klasörünü izler"},
+  {"file": "07-aktarim-ilerlemesi-gece.png", "theme": "dark", "title": "Aktarım ilerlemesi", "caption": "Büyük dosyalarda hız, kalan süre ve iptal"},
+  {"file": "08-arka-planda-aktarim-gece.png", "theme": "dark", "title": "Arka planda aktarım", "caption": "Aktarım panelin altında sürerken çalışmaya devam edin"},
+  {"file": "09-konsol-renk-paleti-gece.png", "theme": "dark", "title": "Konsol renk paleti", "caption": "13 hazır palet; seçim anında önizlenir"},
+  {"file": "10-baglanti-formu-gece.png", "theme": "dark", "title": "Bağlantı formu", "caption": "Şifre veya anahtarla bağlanın, kaydetmeden önce test edin"},
+  {"file": "11-ayarlar-gunduz.png", "theme": "light", "title": "Ayarlar", "caption": "8 dil, Gece/Gündüz/Sistem teması ve başlangıç seçenekleri"},
+  {"file": "12-giris-ekrani-gece.png", "theme": "dark", "title": "Giriş ekranı", "caption": "Tek hesapla giriş; bağlantılar uçtan uca şifreli eşitlenir"}
+]

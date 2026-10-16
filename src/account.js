@@ -7,6 +7,11 @@
 //   encKey   = HKDF-SHA256(master, salt = boş, info = "sshm-enc-v1", 32B)   → AES-256-GCM
 //   authHash = base64(PBKDF2-SHA256(master, şifre, 1, 32B))                → girişte gönderilen tek değer
 // Kütüphane blob'u: base64(iv12 ‖ şifreli metin ‖ tag16), açık metni { schema: 1, items: [...] }.
+//
+// Ortak oturum (Mastertool sözleşmesi v1 §2, bkz. sso.js): şifreyle girişte sunucudan sso_token alınır ve
+// master ile birlikte Windows Kimlik Bilgisi Yöneticisi'ne yazılır. Diğer Mastertool uygulamaları (ve bu
+// uygulama sonraki açılışlarda) /api/sm/auth/sso ile şifresiz girer; encKey master'dan türetilir.
+// Herhangi birinde çıkış yapılınca ortak kimlik silinir, durum "out" olur; hepsi giriş ekranına döner.
 
 const fs = require('fs');
 const path = require('path');
@@ -25,15 +30,22 @@ const MAX_BLOB_BYTES = 5 * 1024 * 1024;
 const pbkdf2 = (pass, salt, iter, len) =>
   new Promise((resolve, reject) => crypto.pbkdf2(pass, salt, iter, len, 'sha256', (e, k) => (e ? reject(e) : resolve(k))));
 
-async function deriveKeys(password, kdf) {
+const encKeyFromMaster = (master) => Buffer.from(crypto.hkdfSync('sha256', master, Buffer.alloc(0), Buffer.from('sshm-enc-v1'), 32));
+
+// keepMaster: ortak kimliğe yazılacaksa master da döner (çağıran iş bitince sıfırlar)
+async function deriveKeys(password, kdf, { keepMaster = false } = {}) {
   if (!kdf || kdf.alg !== 'PBKDF2-SHA256') throw Object.assign(new Error('unsupported_kdf'), { code: 'unsupported_kdf' });
   const pw = Buffer.from(password, 'utf8');
   const master = await pbkdf2(pw, Buffer.from(kdf.salt, 'base64'), kdf.iter, 32);
   const authHash = (await pbkdf2(master, pw, 1, 32)).toString('base64');
-  const encKey = Buffer.from(crypto.hkdfSync('sha256', master, Buffer.alloc(0), Buffer.from('sshm-enc-v1'), 32));
+  const encKey = encKeyFromMaster(master);
+  if (keepMaster) return { authHash, encKey, master };
   master.fill(0);
   return { authHash, encKey };
 }
+
+// Oturumun hangi ortak oturumdan geldiğini sso_token'ı diske yazmadan hatırlamak için
+const ssoRef = (token) => (token ? crypto.createHash('sha256').update(String(token)).digest('base64') : null);
 
 function encryptLibrary(key, obj) {
   const iv = crypto.randomBytes(12);
@@ -110,7 +122,10 @@ async function api(method, route, { token, body, timeout = 20000 } = {}) {
 // ---------------------------------------------------------------------------
 function createAccount(deps) {
   // deps: { userDataDir, appVersion, encrypt, decrypt, getStore, replaceLibrary, persistStore, backupAndClearLibrary,
-  //         onStatus, onSessionExpired, onUpdate }
+  //         onStatus, onSessionExpired, onUpdate, sso?, onSignedIn? }
+  // sso yoksa (kimlik deposu açılamadıysa) uygulama ortak oturum olmadan eskisi gibi çalışır.
+  const sso = deps.sso || null;
+  let watcher = null;
   const file = path.join(deps.userDataDir, 'account.json');
   const keysDir = path.join(deps.userDataDir, 'keys');
 
@@ -169,48 +184,179 @@ function createAccount(deps) {
   const deviceName = () => `${os.hostname()} (Windows)`.slice(0, 120);
 
   // --- Kimlik doğrulama ----------------------------------------------------
-  async function login(email, password, remember) {
-    email = String(email || '').trim().toLowerCase();
-    const pre = await api('POST', '/api/sm/auth/prelogin', { body: { email } });
-    const { authHash, encKey } = await deriveKeys(password, pre.kdf);
-    const res = await api('POST', '/api/sm/auth/login', {
-      body: { email, auth_hash: authHash, device: deviceName(), app_version: String(deps.appVersion).slice(0, 30) },
-    });
-    // Sunucu girişte güncel kdf'yi döner; tuz farklıysa (şifre başka yerde değişmiş) anahtarı yeniden türet
-    let key = encKey;
-    if (res.kdf && res.kdf.salt !== pre.kdf.salt) key = (await deriveKeys(password, res.kdf)).encKey;
+  // Kendi yazdığımız durum değişikliğini izleyici ikinci kez işlemesin
+  function bump(state) {
+    if (!sso) return;
+    try {
+      const s = sso.bumpState(state);
+      if (watcher) watcher.seen(s.gen);
+    } catch { /* durum işareti yazılamadı; diğer uygulamalar ortak kimliği bir sonraki denetimde görür */ }
+  }
 
-    // Farklı bir hesapla giriş: bu bilgisayardaki kütüphane başka bir hesaba ait olabilir; birleştirme yerine yedekle
+  function clearShared() {
+    if (!sso) return;
+    sso.deleteCredential();
+    bump('out');
+  }
+
+  // Oturumu kur (şifreyle ya da ortak kimlikle). Farklı bir hesapla giriş: bu bilgisayardaki kütüphane
+  // başka bir hesaba ait olabilir; birleştirme yerine önce yedeklenir.
+  function establish(res, { email, encKey, kdfSalt, remember, ref }) {
     let backupFile = null;
     if (saved.lastUserId && saved.lastUserId !== res.user.id) backupFile = deps.backupAndClearLibrary();
-
-    session = { token: res.token, user: res.user, encKey: key, kdfSalt: (res.kdf || pre.kdf).salt, syncEnabled: res.sync_enabled !== false };
+    session = { token: res.token, user: res.user, encKey, kdfSalt, syncEnabled: res.sync_enabled !== false };
     saved.email = email;
     saved.remember = !!remember;
     saved.lastUserId = res.user.id;
+    saved.ssoRef = ref || null;
     if (backupFile) { status.libraryVersion = null; status.lastSyncAt = null; }
     persist();
     setStatus({ error: null });
     return { backupFile };
   }
 
-  async function logout() {
-    const token = session && session.token;
-    session = null;
-    stopTimers();
-    persist();
-    setStatus({ state: 'idle', error: null });
-    if (token) api('POST', '/api/sm/auth/logout', { token }).catch(() => {});
+  async function login(email, password, remember) {
+    email = String(email || '').trim().toLowerCase();
+    const pre = await api('POST', '/api/sm/auth/prelogin', { body: { email } });
+    let { authHash, encKey, master } = await deriveKeys(password, pre.kdf, { keepMaster: true });
+    try {
+      const res = await api('POST', '/api/sm/auth/login', {
+        body: { email, auth_hash: authHash, device: deviceName(), app_version: String(deps.appVersion).slice(0, 30), sso: !!sso },
+      });
+      // Sunucu girişte güncel kdf'yi döner; farklıysa (şifre başka yerde değişmiş) anahtarları yeniden türet
+      const kdf = res.kdf || pre.kdf;
+      if (kdf.salt !== pre.kdf.salt || Number(kdf.iter) !== Number(pre.kdf.iter)) {
+        master.fill(0);
+        ({ encKey, master } = await deriveKeys(password, kdf, { keepMaster: true }));
+      }
+      // Ortak kimlik: diğer Mastertool uygulamaları şifresiz girebilsin. Yazılamazsa giriş yine geçerlidir.
+      let ref = null;
+      if (sso && res.sso_token) {
+        try {
+          sso.writeCredential({
+            email: (res.user && res.user.email) || email,
+            user: { id: res.user && res.user.id, name: (res.user && res.user.name) || '' },
+            sso_token: res.sso_token, master, kdf,
+          });
+          ref = ssoRef(res.sso_token);
+        } catch { ref = null; }
+      }
+      const out = establish(res, { email, encKey, kdfSalt: kdf.salt, remember, ref });
+      if (ref) bump('in');
+      return out;
+    } finally {
+      master.fill(0);
+    }
   }
 
-  // Oturum sunucuda geçersiz: 401 session_expired, ya da 403 app_disabled (yönetici bu hesapta
-  // SSH Master'ı kapattı) / wrong_app (başka uygulamanın oturumu). Yerel kütüphane korunur.
-  function expire(code = 'session_expired') {
+  // Ortak kimlikle şifresiz giriş. Dönüş: { ok: true, backupFile } | { ok: false, code }
+  //   401 → ortak oturum sunucuda düşmüş: kimlik silinir, durum "out"
+  //   403 app_disabled → bu hesapta SSH Master kapalı (ortak oturum diğer uygulamalar için kalır)
+  async function ssoLogin() {
+    if (!sso) return { ok: false, code: 'no_sso' };
+    const cred = sso.readCredential();
+    if (!cred) return { ok: false, code: 'no_credential' };
+    let master = null;
+    try {
+      const res = await api('POST', '/api/sm/auth/sso', {
+        body: { sso_token: cred.sso_token, device: deviceName(), app_version: String(deps.appVersion).slice(0, 30) },
+      });
+      master = Buffer.from(String(cred.master || ''), 'base64');
+      if (master.length !== 32) throw new ApiError(401, 'bad_credential');
+      // Ortak kimlikteki master hesabın güncel kdf'siyle türetilmemişse senkron anahtarı yanlış olur
+      if (res.kdf && cred.kdf && (res.kdf.salt !== cred.kdf.salt || Number(res.kdf.iter) !== Number(cred.kdf.iter))) {
+        throw new ApiError(401, 'session_expired');
+      }
+      const out = establish(res, {
+        email: (res.user && res.user.email) || cred.email, encKey: encKeyFromMaster(master),
+        kdfSalt: (res.kdf || cred.kdf || {}).salt, remember: true, ref: ssoRef(cred.sso_token),
+      });
+      return { ok: true, ...out };
+    } catch (e) {
+      if (e.status === 401) clearShared();
+      return { ok: false, code: e.code || 'error', message: e.message };
+    } finally {
+      if (master) master.fill(0);
+    }
+  }
+
+  // Yerel oturumu kapat (sunucuya ve ortak kimliğe dokunmadan); yerel kütüphane korunur
+  function dropSession(code) {
     session = null;
+    saved.ssoRef = null;
     stopTimers();
     persist();
-    setStatus({ state: 'idle', error: code });
+    setStatus({ state: 'idle', error: code || null });
+  }
+
+  // Çıkış: bu cihazdaki tüm Mastertool uygulamalarından çıkılır
+  async function logout() {
+    const token = session && session.token;
+    dropSession();
+    clearShared();
+    if (token) await api('POST', '/api/sm/auth/logout', { token, timeout: 8000 }).catch(() => {});
+  }
+
+  // Oturum sunucuda geçersiz: 401 session_expired (ortak oturum da düşmüştür, tüm aile kapanır),
+  // ya da 403 app_disabled (yönetici bu hesapta SSH Master'ı kapattı) / wrong_app. Yerel kütüphane korunur.
+  function expire(code = 'session_expired') {
+    dropSession(code);
+    if (code === 'session_expired') clearShared();
     deps.onSessionExpired(code);
+  }
+
+  // Durum işareti değişti (başka bir Mastertool uygulaması girdi ya da çıktı). Asıl bilgi ortak kimliktedir:
+  // kimlik yoksa oturum kapanır; varsa ve bu oturumun geldiği ortak oturum değilse onunla yeniden girilir.
+  let reconciling = null;
+  function syncFromShared() {
+    if (!sso) return Promise.resolve();
+    if (reconciling) return reconciling;
+    reconciling = (async () => {
+      const cred = sso.readCredential();
+      if (!cred) {
+        if (session) { dropSession('signed_out'); deps.onSessionExpired('signed_out'); }
+        return;
+      }
+      if (session && saved.ssoRef === ssoRef(cred.sso_token)) return;
+      const wasIn = !!session;
+      const r = await ssoLogin();
+      if (r.ok) {
+        if (wasIn) start();
+        else if (deps.onSignedIn) deps.onSignedIn(r);
+      } else if (wasIn && (r.code === 'session_expired' || r.code === 'bad_credential' || r.code === 'app_disabled')) {
+        expire(r.code === 'bad_credential' ? 'session_expired' : r.code);
+      }
+    })().finally(() => { reconciling = null; });
+    return reconciling;
+  }
+
+  function startWatching() {
+    if (!sso || watcher) return;
+    try { watcher = sso.watch(() => { syncFromShared(); }); } catch { watcher = null; }
+  }
+  function stopWatching() {
+    if (watcher) watcher.stop();
+    watcher = null;
+  }
+
+  // Açılışta: saklı oturum yoksa ortak kimlikle girmeyi dene. Saklı oturum ortak oturumdan geldiyse ve o ortak
+  // oturum kapanmışsa (uygulama kapalıyken başka yerde çıkış yapıldı) oturum kapanır; başka bir ortak oturum
+  // açılmışsa ona geçilir. Dönüş: { ok, code?, backupFile? }
+  async function resume() {
+    if (!sso) return { ok: !!session };
+    const cred = sso.readCredential();
+    if (session) {
+      if (!saved.ssoRef) return { ok: true }; // ortak oturumdan önceki (1.2.0) oturum
+      if (!cred) { dropSession('signed_out'); return { ok: false, code: 'signed_out' }; }
+      if (saved.ssoRef === ssoRef(cred.sso_token)) return { ok: true };
+    } else if (!cred) {
+      return { ok: false, code: 'no_credential' };
+    }
+    const r = await ssoLogin();
+    if (r.ok) return r;
+    // Çevrimdışıysa saklı oturumla açılmaya devam edilir
+    if (session && (r.code === 'session_expired' || r.code === 'bad_credential' || r.code === 'app_disabled')) dropSession(r.code);
+    return { ok: !!session, code: r.code };
   }
 
   async function authed(method, route, body) {
@@ -474,6 +620,7 @@ function createAccount(deps) {
     isLoggedIn: () => !!session,
     state: publicState,
     login, logout, start, syncNow, onLocalChange, setSyncEnabled, deleteRemote, checkUpdate,
+    ssoLogin, resume, syncFromShared, startWatching, stopWatching,
     // testler için
     _merge: merge,
   };

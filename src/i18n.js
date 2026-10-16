@@ -35,6 +35,7 @@
     "about.chromium": "Chromium lisanslarını aç",
     'auth.errAppDisabled': "Bu hesapta SSH Master kullanımı yönetici tarafından kapatılmış. Hesap yöneticinizle iletişime geçin.",
     'auth.errWrongApp': "Bu oturum başka bir uygulamaya ait. Lütfen SSH Master için yeniden giriş yapın.",
+    'auth.signedOut': "Bu bilgisayardaki bir Mastertool uygulamasında çıkış yapıldı. Tekrar giriş yapın.",
     // hesap ve senkron
     "auth.subtitle": "Hesabınızla giriş yapın",
     "auth.email": "E-posta",
@@ -205,6 +206,7 @@
     "about.chromium": "Open Chromium licenses",
     'auth.errAppDisabled': "SSH Master has been disabled for this account by an administrator. Contact your account administrator.",
     'auth.errWrongApp': "This session belongs to another application. Please sign in to SSH Master again.",
+    'auth.signedOut': "You signed out in a Mastertool app on this computer. Please sign in again.",
     // hesap ve senkron
     "auth.subtitle": "Sign in with your account",
     "auth.email": "Email",
@@ -375,6 +377,7 @@
     "about.chromium": "فتح تراخيص Chromium",
     'auth.errAppDisabled': "عطّل المسؤول استخدام SSH Master لهذا الحساب. تواصل مع مسؤول حسابك.",
     'auth.errWrongApp': "هذه الجلسة تخص تطبيقًا آخر. يرجى تسجيل الدخول إلى SSH Master مجددًا.",
+    'auth.signedOut': "تم تسجيل الخروج في أحد تطبيقات Mastertool على هذا الكمبيوتر. يرجى تسجيل الدخول مجددًا.",
     // hesap ve senkron
     "auth.subtitle": "سجّل الدخول بحسابك",
     "auth.email": "البريد الإلكتروني",
@@ -545,6 +548,7 @@
     "about.chromium": "Ouvrir les licences Chromium",
     'auth.errAppDisabled': "SSH Master a été désactivé pour ce compte par un administrateur. Contactez l’administrateur de votre compte.",
     'auth.errWrongApp': "Cette session appartient à une autre application. Reconnectez-vous à SSH Master.",
+    'auth.signedOut': "Vous vous êtes déconnecté dans une application Mastertool sur cet ordinateur. Reconnectez-vous.",
     // hesap ve senkron
     "auth.subtitle": "Connectez-vous avec votre compte",
     "auth.email": "E-mail",
@@ -715,6 +719,7 @@
     "about.chromium": "Abrir licencias de Chromium",
     'auth.errAppDisabled': "Un administrador ha desactivado SSH Master para esta cuenta. Contacta con el administrador de tu cuenta.",
     'auth.errWrongApp': "Esta sesión pertenece a otra aplicación. Vuelve a iniciar sesión en SSH Master.",
+    'auth.signedOut': "Se cerró la sesión en una aplicación Mastertool de este equipo. Vuelve a iniciar sesión.",
     // hesap ve senkron
     "auth.subtitle": "Inicia sesión con tu cuenta",
     "auth.email": "Correo electrónico",
@@ -885,6 +890,7 @@
     "about.chromium": "Chromium-Lizenzen öffnen",
     'auth.errAppDisabled': "SSH Master wurde für dieses Konto von einem Administrator deaktiviert. Wenden Sie sich an Ihren Kontoadministrator.",
     'auth.errWrongApp': "Diese Sitzung gehört zu einer anderen Anwendung. Bitte melden Sie sich erneut bei SSH Master an.",
+    'auth.signedOut': "Sie haben sich in einer Mastertool-App auf diesem Computer abgemeldet. Bitte melden Sie sich erneut an.",
     // hesap ve senkron
     "auth.subtitle": "Mit Ihrem Konto anmelden",
     "auth.email": "E-Mail",
@@ -1055,6 +1061,7 @@
     "about.chromium": "打开 Chromium 许可",
     'auth.errAppDisabled': "管理员已为此账户停用 SSH Master。请联系你的账户管理员。",
     'auth.errWrongApp': "此会话属于其他应用。请重新登录 SSH Master。",
+    'auth.signedOut': "已在此电脑上的某个 Mastertool 应用中退出登录。请重新登录。",
     // hesap ve senkron
     "auth.subtitle": "使用你的账户登录",
     "auth.email": "电子邮件",
@@ -1225,6 +1232,7 @@
     "about.chromium": "Открыть лицензии Chromium",
     "auth.errAppDisabled": "Администратор отключил SSH Master для этой учётной записи. Обратитесь к администратору учётной записи.",
     "auth.errWrongApp": "Этот сеанс принадлежит другому приложению. Войдите в SSH Master заново.",
+    "auth.signedOut": "Вы вышли из учётной записи в одном из приложений Mastertool на этом компьютере. Войдите снова.",
     "auth.subtitle": "Войдите в свою учётную запись",
     "auth.email": "Эл. почта",
     "auth.password": "Пароль",

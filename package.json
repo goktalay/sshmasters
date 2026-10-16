@@ -10,9 +10,11 @@
     "start": "electron .",
     "icon": "node scripts/make-icon.js",
     "dist": "electron-builder --win",
-    "dist:portable": "electron-builder --win portable"
+    "dist:portable": "electron-builder --win portable",
+    "test": "node --test test/*.test.js"
   },
   "dependencies": {
+    "@napi-rs/keyring": "^2.1.1",
     "@xterm/addon-fit": "^0.10.0",
     "@xterm/addon-web-links": "^0.11.0",
     "@xterm/xterm": "^5.5.0",

@@ -221,8 +221,38 @@ let account = null;
 let loginWindow = null;
 let loginNotice = null; // giriş ekranında gösterilecek bilgi (ör. oturum süresi doldu)
 
+// Mastertool ortak oturumu: ortak kimlik Windows Kimlik Bilgisi Yöneticisi'nde, durum işareti
+// %APPDATA%\Mastertool\sso-state.json'da. Kimlik deposu açılamazsa uygulama ortak oturumsuz çalışır.
+function createSharedSession() {
+  try {
+    const { createSso } = require('./sso');
+    return createSso({ stateDir: path.join(app.getPath('appData'), 'Mastertool') });
+  } catch {
+    return null;
+  }
+}
+
+const noticeFor = (code) => ({
+  app_disabled: t('auth.errAppDisabled'),
+  wrong_app: t('auth.errWrongApp'),
+  signed_out: t('auth.signedOut'),
+  session_expired: t('auth.errSessionExpired'),
+}[code] || null);
+
+// Giriş ekranındayken başka bir Mastertool uygulamasında giriş yapıldı (ya da açılışta ortak oturumla girildi)
+function enterApp(backupFile) {
+  loginNotice = null;
+  // Önce ana pencere açılır, sonra giriş penceresi kapanır (aksi halde uygulama kapanırdı)
+  if (!mainWindow) createMainWindow();
+  if (loginWindow) loginWindow.destroy();
+  if (backupFile) mainWindow.webContents.once('did-finish-load', () => mainWindow.webContents.send('account:backup', backupFile));
+  account.start();
+}
+
 function initAccount() {
   account = createAccount({
+    sso: createSharedSession(),
+    onSignedIn: ({ backupFile }) => enterApp(backupFile),
     userDataDir: app.getPath('userData'),
     appVersion: app.getVersion(),
     encrypt,
@@ -250,8 +280,7 @@ function initAccount() {
     onStatus: (st) => {
       for (const w of BrowserWindow.getAllWindows()) w.webContents.send('account:status', st);
     },
-    onSessionExpired: (code) =>
-      showLogin(t(code === 'app_disabled' ? 'auth.errAppDisabled' : code === 'wrong_app' ? 'auth.errWrongApp' : 'auth.errSessionExpired')),
+    onSessionExpired: (code) => showLogin(noticeFor(code) || t('auth.errSessionExpired')),
     onUpdate: (info) => mainWindow && mainWindow.webContents.send('app:update', info),
   });
 }
@@ -326,7 +355,10 @@ let isQuitting = false;
 
 function showMainWindow() {
   if (!account || !account.isLoggedIn()) {
-    if (loginWindow) loginWindow.focus(); else showLogin();
+    if (!loginWindow) { showLogin(); return; }
+    if (loginWindow.isMinimized()) loginWindow.restore();
+    loginWindow.show();
+    loginWindow.focus();
     return;
   }
   if (!mainWindow) createMainWindow();
@@ -966,12 +998,7 @@ ipcMain.handle('account:state', () => ({ ...account.state(), notice: loginNotice
 ipcMain.handle('account:login', async (_e, { email, password, remember }) => {
   try {
     const { backupFile } = await account.login(email, password, remember);
-    loginNotice = null;
-    // Önce ana pencere açılır, sonra giriş penceresi kapanır (aksi halde uygulama kapanırdı)
-    if (!mainWindow) createMainWindow();
-    if (loginWindow) loginWindow.destroy();
-    if (backupFile) mainWindow.webContents.once('did-finish-load', () => mainWindow.webContents.send('account:backup', backupFile));
-    account.start();
+    enterApp(backupFile);
     return { ok: true };
   } catch (e) {
     return { ok: false, code: e.code || 'error', message: e.message };
@@ -979,8 +1006,10 @@ ipcMain.handle('account:login', async (_e, { email, password, remember }) => {
 });
 
 ipcMain.handle('account:logout', async () => {
-  await account.logout();
+  // Yerel oturum ve ortak kimlik hemen silinir; sunucuya çıkış bildirimi arkada tamamlanır
+  const done = account.logout();
   showLogin();
+  await done;
 });
 
 ipcMain.handle('account:syncNow', () => account.syncNow());
@@ -1228,19 +1257,24 @@ if (!gotLock) {
   app.on('second-instance', showMainWindow);
   app.on('before-quit', () => (isQuitting = true));
 
-  app.whenReady().then(() => {
+  app.whenReady().then(async () => {
     loadStore();
     initAccount();
     // Uygulama girişsiz açılmaz. "Beni hatırla" ile saklı oturum varsa doğrudan açılır
     // (çevrimdışıyken yerel kütüphaneyle), oturum sunucuda düşmüşse giriş ekranına dönülür.
+    // Saklı oturum yoksa ama bu bilgisayarda bir Mastertool uygulamasında giriş yapılmışsa şifresiz girilir.
+    const r = await account.resume();
+    account.startWatching();
     if (account.isLoggedIn()) {
       createMainWindow();
+      if (r.backupFile) mainWindow.webContents.once('did-finish-load', () => mainWindow.webContents.send('account:backup', r.backupFile));
       // Windows oturumuyla başlatıldıysa ve tepsiye küçültme açıksa doğrudan tepside başla
       if (process.argv.includes('--hidden') && store.settings.minimizeToTray) {
         mainWindow.once('ready-to-show', () => hideToTray());
       }
       account.start();
     } else {
+      loginNotice = noticeFor(r.code);
       createLoginWindow();
     }
     app.on('activate', () => BrowserWindow.getAllWindows().length === 0 && showMainWindow());

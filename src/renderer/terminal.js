@@ -8,6 +8,8 @@ const $ = (s) => document.querySelector(s);
 
 let data = { shortcuts: [], settings: {}, connections: [] };
 let syncInput = false;
+// Yüzde dilin biçimiyle: tr "%5", en "5%", fr/de "5 %" (rakamlar her dilde Latin)
+const PCT = new Intl.NumberFormat(`${LANG}-u-nu-latn`, { style: 'percent', maximumFractionDigits: 0 });
 
 const MAX_PANES = 6;
 const panes = new Map(); // paneId -> Pane
@@ -1167,7 +1169,7 @@ const Transfers = {
     if (tr.dialog) {
       const d = tr.dialog;
       d.querySelector('.progress > div').style.width = pct + '%';
-      d.querySelector('[data-el="pct"]').textContent = `%${Math.floor(pct)}`;
+      d.querySelector('[data-el="pct"]').textContent = PCT.format(Math.floor(pct) / 100);
       d.querySelector('[data-el="stats"]').textContent = this.statsText(tr);
       d.querySelector('[data-el="current"]').textContent = tr.files > 1 ? tr.current : '';
     }

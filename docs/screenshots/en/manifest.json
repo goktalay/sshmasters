@@ -1,0 +1,14 @@
+[
+  {"file": "01-ana-ekran-gece.png", "theme": "dark", "title": "Home screen", "caption": "All your connections and folders at a glance"},
+  {"file": "02-ana-ekran-gunduz.png", "theme": "light", "title": "Home screen", "caption": "Connection cards and folders in the Day theme"},
+  {"file": "03-bolunmus-terminal-gece.png", "theme": "dark", "title": "Split terminal", "caption": "Four servers in one window; type once, run on every pane"},
+  {"file": "04-bolunmus-terminal-gunduz.png", "theme": "light", "title": "Split terminal", "caption": "Each connection opens with its own console color palette"},
+  {"file": "05-dosya-yonetimi-gece.png", "theme": "dark", "title": "File management", "caption": "Shortcuts, server files and This PC right next to the terminal"},
+  {"file": "06-dosya-yonetimi-gunduz.png", "theme": "light", "title": "File management", "caption": "Right-click to download or upload; follows the terminal folder"},
+  {"file": "07-aktarim-ilerlemesi-gece.png", "theme": "dark", "title": "Transfer progress", "caption": "Speed, time left and cancel for large transfers"},
+  {"file": "08-arka-planda-aktarim-gece.png", "theme": "dark", "title": "Background transfers", "caption": "Keep working while the transfer runs in the side panel"},
+  {"file": "09-konsol-renk-paleti-gece.png", "theme": "dark", "title": "Console color palette", "caption": "13 built-in palettes with instant preview"},
+  {"file": "10-baglanti-formu-gece.png", "theme": "dark", "title": "Connection form", "caption": "Password or key authentication; test before you save"},
+  {"file": "11-ayarlar-gunduz.png", "theme": "light", "title": "Settings", "caption": "8 languages, Night/Day/System theme and startup options"},
+  {"file": "12-giris-ekrani-gece.png", "theme": "dark", "title": "Sign-in screen", "caption": "One account; connections sync with end-to-end encryption"}
+]

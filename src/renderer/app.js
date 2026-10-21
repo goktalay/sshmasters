@@ -632,6 +632,11 @@ async function openSettings(startTab = 'general') {
       <section data-page="terminal">
         <div class="field" style="max-width:200px"><label>${esc(t('set.fontSize'))}</label>
           <input class="input" id="s-font" type="number" min="9" max="28" value="${esc(s.fontSize || 14)}"></div>
+        <label class="check"><input type="checkbox" id="s-suggest" ${s.commandSuggest !== false ? 'checked' : ''}>
+          <span>${esc(t('set.suggest'))}<small>${esc(t('set.suggestHint'))}</small></span></label>
+        <div class="acct-actions">
+          <button class="btn sm" type="button" id="s-clearhist">${icon('trash')}${esc(t('set.clearHistory'))}</button>
+        </div>
       </section>
 
       <section data-page="transfers">
@@ -707,6 +712,12 @@ async function openSettings(startTab = 'general') {
     else { out.classList.add('ok'); out.textContent = t('about.upToDate'); }
   };
   q('#s-licenses').onclick = () => window.api.openLicenses();
+  q('#s-clearhist').onclick = async () => {
+    const ok = await confirmBox(t('set.clearHistory'), esc(t('set.clearHistoryMsg')));
+    if (!ok) return;
+    await window.api.historyClear();
+    toast(t('set.historyCleared'), { type: 'ok' });
+  };
 
   const res = await openModal({
     title: t('set.title'), iconName: 'gear', width: 760, body,
@@ -721,6 +732,7 @@ async function openSettings(startTab = 'general') {
           minimizeToTray: m.querySelector('#s-min').checked,
           closeToTray: m.querySelector('#s-close').checked,
           transfersInBackground: m.querySelector('#s-trbg').checked,
+          commandSuggest: m.querySelector('#s-suggest').checked,
           fontSize: Math.min(28, Math.max(9, Number(m.querySelector('#s-font').value) || 14)),
         }),
       },

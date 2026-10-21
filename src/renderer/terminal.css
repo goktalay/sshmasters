@@ -179,3 +179,28 @@
 .tr-dlg-current { color: var(--text-3); font-family: var(--mono); font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-height: 15px; direction: ltr; text-align: start; }
 
 [dir="rtl"] .panel.collapsed .panel-toggle svg.i { transform: rotate(90deg); }
+
+/* Komut önerileri: imlecin altında açılan liste */
+.suggest {
+  position: fixed; z-index: 60; min-width: 260px; max-width: min(640px, calc(100vw - 16px));
+  background: var(--surface); border: 1px solid var(--border-strong); border-radius: 9px;
+  box-shadow: 0 12px 32px var(--card-shadow), 0 2px 6px var(--card-shadow);
+  font-family: 'Cascadia Code', 'Cascadia Mono', Consolas, monospace; font-size: 12.5px; overflow: hidden;
+}
+.suggest.hidden { display: none; }
+.suggest .sg-list { max-height: 248px; overflow-y: auto; padding: 4px; }
+.suggest .sg-item {
+  display: flex; align-items: center; gap: 8px; padding: 5px 9px; border-radius: 6px;
+  color: var(--text-2); cursor: pointer; white-space: nowrap;
+}
+.suggest .sg-item:hover { background: var(--surface-3); }
+.suggest .sg-item.on { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--text); }
+.suggest .sg-cmd { overflow: hidden; text-overflow: ellipsis; direction: ltr; unicode-bidi: isolate; }
+.suggest .sg-cmd b { color: var(--accent); font-weight: 700; }
+.suggest .sg-ic { display: inline-flex; color: var(--text-3); flex: none; }
+.suggest .sg-ic svg { width: 13px; height: 13px; }
+.suggest .sg-item.on .sg-ic { color: var(--accent); }
+.suggest .sg-foot {
+  padding: 5px 10px; border-top: 1px solid var(--border); color: var(--text-3);
+  font-family: inherit; font-size: 11px; background: var(--bg-2);
+}

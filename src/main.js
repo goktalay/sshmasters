@@ -24,6 +24,7 @@ const storePath = () => path.join(app.getPath('userData'), 'store.json');
 const defaultStore = () => ({
   folders: [],      // { id, name, parentId }
   connections: [],  // { id, name, host, port, username, authType, password, keyPath, passphrase, folderId, rememberLastDir, lastDir, color, hostKey }
+  history: {},      // { [connId]: ['son komut', …] } — yazılan komutlar; yalnız bu cihazda, senkronlanmaz
   shortcuts: [
     { id: uid(), name: t('main.defDisk'), command: 'df -h', enter: true },
     { id: uid(), name: t('main.defMem'), command: 'free -m', enter: true },
@@ -41,6 +42,7 @@ const defaultStore = () => ({
     openAtLogin: false,    // Windows oturumu açılınca başlat
     language: null,        // null = sistem dili (desteklenmiyorsa İngilizce)
     transfersInBackground: false, // büyük aktarımlar doğrudan arka planda
+    commandSuggest: true,  // terminalde yazarken önceki komutları öner
   },
 });
 
@@ -102,6 +104,7 @@ function publicStore() {
     folders: store.folders,
     shortcuts: store.shortcuts,
     settings: store.settings,
+    history: store.history || {},
     connections: store.connections.map((c) => {
       const { password, passphrase, hostKey, ...rest } = c;
       return { ...rest, hasPassword: !!password, hasPassphrase: !!passphrase };
@@ -273,7 +276,7 @@ function initAccount() {
         file = path.join(app.getPath('userData'), `store-backup-${new Date().toISOString().replace(/[:.]/g, '-')}.json`);
         fs.writeFileSync(file, JSON.stringify(store, null, 2), 'utf8');
       }
-      Object.assign(store, { folders: [], connections: [], syncMeta: {} });
+      Object.assign(store, { folders: [], connections: [], syncMeta: {}, history: {} });
       writeStoreNow();
       return file;
     },
@@ -1069,8 +1072,30 @@ ipcMain.handle('conn:save', (_e, form) => {
 
 ipcMain.handle('conn:delete', (_e, id) => {
   store.connections = store.connections.filter((c) => c.id !== id);
+  if (store.history) delete store.history[id];
   saveStore();
   broadcastStore();
+});
+
+// --- Komut geçmişi (terminal önerileri) -----------------------------------------
+// Bağlantı başına en çok 300 komut, en yenisi başta. Yalnız bu cihazda tutulur (senkrona girmez).
+const HISTORY_MAX = 300;
+const sendHistory = (payload) => {
+  for (const w of BrowserWindow.getAllWindows()) w.webContents.send('history:changed', payload);
+};
+ipcMain.handle('history:add', (_e, { connId, command }) => {
+  const cmd = String(command || '').replace(/[\r\n]+/g, ' ').trim().slice(0, 1000);
+  if (!cmd || !store.connections.some((c) => c.id === connId)) return;
+  if (!store.history) store.history = {};
+  const list = [cmd, ...(store.history[connId] || []).filter((x) => x !== cmd)].slice(0, HISTORY_MAX);
+  store.history[connId] = list;
+  saveStore({ sync: false });
+  sendHistory({ connId, list });
+});
+ipcMain.handle('history:clear', () => {
+  store.history = {};
+  saveStore({ sync: false });
+  sendHistory({ all: true });
 });
 
 ipcMain.handle('conn:duplicate', (_e, id) => {
@@ -1235,7 +1260,7 @@ ipcMain.handle('settings:set', (_e, patch) => {
     if (mainWindow) mainWindow.webContents.reload();
     if (loginWindow) loginWindow.webContents.reload();
   }
-  if (['fontSize', 'minimizeToTray', 'closeToTray', 'appTheme', 'language', 'transfersInBackground'].some((k) => k in patch)) broadcastStore();
+  if (['fontSize', 'minimizeToTray', 'closeToTray', 'appTheme', 'language', 'transfersInBackground', 'commandSuggest'].some((k) => k in patch)) broadcastStore();
 });
 
 // ---------------------------------------------------------------------------

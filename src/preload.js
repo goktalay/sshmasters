@@ -33,6 +33,11 @@ contextBridge.exposeInMainWorld('api', {
   onStoreChanged: on('store:changed'),
   setSettings: (patch) => ipcRenderer.invoke('settings:set', patch),
 
+  // komut geçmişi (terminal önerileri)
+  historyAdd: (connId, command) => ipcRenderer.invoke('history:add', { connId, command }),
+  historyClear: () => ipcRenderer.invoke('history:clear'),
+  onHistoryChanged: on('history:changed'),
+
   // bağlantılar
   saveConnection: (form) => ipcRenderer.invoke('conn:save', form),
   deleteConnection: (id) => ipcRenderer.invoke('conn:delete', id),

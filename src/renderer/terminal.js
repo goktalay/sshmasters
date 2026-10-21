@@ -86,19 +86,20 @@ class Pane {
 
     term.onData((d) => {
       if (this.connected) {
-        if (syncInput) {
-          for (const p of panes.values()) if (p.connected) api.sshWrite(p.id, d);
-        } else {
-          api.sshWrite(this.id, d);
-        }
+        this.send(d);
         return;
       }
       if (!this.connecting && (d === '\r' || d === ' ')) this.connect();
     });
+    this.line = new LineTracker(this);
+    // Öneri listesi yankıyla birlikte imleci izler
+    term.onCursorMove(() => { if (Suggest.visibleFor(this)) Suggest.place(this); });
+    term.onScroll(() => { if (Suggest.visibleFor(this)) Suggest.place(this); });
     term.onResize(({ cols, rows }) => this.connected && api.sshResize(this.id, cols, rows));
 
     term.attachCustomKeyEventHandler((e) => {
       if (e.type !== 'keydown') return true;
+      if (Suggest.handleKey(this, e) === false) return false;
       const k = e.key.toLowerCase();
       if (e.ctrlKey && !e.shiftKey && k === 'c' && term.hasSelection()) { this.copySelection(); return false; }
       if (e.ctrlKey && e.shiftKey && k === 'c') { this.copySelection(); return false; }
@@ -163,6 +164,16 @@ class Pane {
 
   doFit() {
     try { this.fit.fit(); } catch {}
+  }
+
+  // Klavyeden (ya da öneriden) gelen girdi: "tüm bölmelere yaz" açıksa bağlı tüm bölmelere gider.
+  // Her bölme yazılan satırı kendisi izler (komut önerileri ve geçmiş için).
+  send(d) {
+    const targets = syncInput ? [...panes.values()].filter((p) => p.connected) : [this];
+    for (const p of targets) {
+      api.sshWrite(p.id, d);
+      p.line.input(d);
+    }
   }
 
   async copySelection() {
@@ -306,6 +317,7 @@ function setActive(pane) {
   if (active === pane || !pane) return;
   const prev = active;
   if (prev) prev.el.classList.remove('active');
+  Suggest.hide();
   active = pane;
   pane.el.classList.add('active');
 }
@@ -524,13 +536,209 @@ document.addEventListener('keydown', (e) => {
 });
 
 // =============================================================================
+// Komut önerileri: yazılan satır yerelde izlenir; önceki komutlardan uyanlar imlecin altında listelenir.
+// Ctrl+Enter seçili öneriyi yazar (Enter'a basmaz), Ctrl+↑/↓ seçer, Esc kapatır.
+// =============================================================================
+
+// Bir bölmede kabuğa gönderilen girdiden o anki komut satırını çıkarır. Satır kesin bilinmiyorsa
+// (ok tuşları, Tab tamamlama, Ctrl+R…) "dirty" olur; öneri gösterilmez, Enter'da kaydedilmez.
+class LineTracker {
+  constructor(pane) {
+    this.pane = pane;
+    this.text = '';
+    this.dirty = false;
+  }
+
+  reset() { this.text = ''; this.dirty = false; }
+
+  input(d) {
+    // Yapıştırma (bracketed paste) işaretleri yazılan metnin parçası değildir
+    d = d.replace(/\x1b\[20[01]~/g, '');
+    if (d.startsWith('\x1b')) { this.dirty = true; Suggest.refresh(this.pane); return; } // ok tuşları, F tuşları…
+    for (const ch of d) {
+      if (ch === '\r') this.commit();
+      else if (ch === '\x7f' || ch === '\b') this.text = this.text.slice(0, -1);
+      else if (ch === '\x03' || ch === '\x15') this.reset();             // Ctrl+C, Ctrl+U: satır boşalır
+      else if (ch < ' ') this.dirty = true;                               // Tab, Ctrl+R, Ctrl+A…
+      else this.text += ch;
+    }
+    Suggest.refresh(this.pane);
+  }
+
+  // Enter: satır kesin biliniyorsa ve ekranda yankılandıysa geçmişe yazılır. Yankılanmayan girdi
+  // (şifre istemleri) kaydedilmez; boşlukla başlayan komutlar da (kabuklardaki gibi) kaydedilmez.
+  commit() {
+    const cmd = this.text;
+    const ok = !this.dirty && cmd.trim() && !cmd.startsWith(' ') && this.echoed(cmd.trim())
+      && this.pane.term.buffer.active.type === 'normal';
+    if (ok) api.historyAdd(this.pane.connId, cmd.trim());
+    this.reset();
+  }
+
+  echoed(cmd) {
+    const term = this.pane.term;
+    const b = term.buffer.active;
+    // Uzun komutlar birden çok satıra sarılır: imleç satırından geriye doğru sarılmış satırlar birleştirilir
+    let y = b.baseY + b.cursorY;
+    let s = b.getLine(y)?.translateToString(true) || '';
+    while (y > 0 && b.getLine(y)?.isWrapped) { y--; s = (b.getLine(y)?.translateToString(true) || '') + s; }
+    return s.includes(cmd);
+  }
+}
+
+const Suggest = {
+  el: null,
+  pane: null,
+  items: [],
+  index: 0,
+  dismissed: null, // Esc ile kapatılan satır: aynı satırda yeniden açılmaz
+
+  enabled: () => data.settings.commandSuggest !== false,
+
+  ensure() {
+    if (this.el) return this.el;
+    this.el = h(`<div class="suggest hidden" role="listbox"><div class="sg-list"></div>
+      <div class="sg-foot">${esc(t('sug.hint'))}</div></div>`);
+    // Fare ile seçim: odak terminalde kalsın
+    this.el.addEventListener('mousedown', (e) => e.preventDefault());
+    this.el.addEventListener('click', (e) => {
+      const it = e.target.closest('.sg-item');
+      if (it && this.pane) this.accept(this.pane, Number(it.dataset.i));
+    });
+    document.body.appendChild(this.el);
+    return this.el;
+  },
+
+  hide() {
+    if (this.el) this.el.classList.add('hidden');
+    this.pane = null;
+    this.items = [];
+  },
+
+  visibleFor(pane) { return this.pane === pane && this.items.length > 0; },
+
+  // Bağlantının kendi geçmişi önce, sonra diğer bağlantıların geçmişi, sonra kısayollar
+  candidates(pane) {
+    const hist = data.history || {};
+    const own = hist[pane.connId] || [];
+    const others = Object.entries(hist).filter(([id]) => id !== pane.connId).flatMap(([, l]) => l);
+    const sc = (data.shortcuts || []).map((s) => s.command.replace(/\r?\n/g, ' ').trim());
+    const seen = new Set();
+    const out = [];
+    for (const [list, kind] of [[own, 'h'], [others, 'h'], [sc, 's']]) {
+      for (const cmd of list) if (cmd && !seen.has(cmd)) { seen.add(cmd); out.push({ cmd, kind }); }
+    }
+    return out;
+  },
+
+  match(pane, q) {
+    const lq = q.toLowerCase();
+    const all = this.candidates(pane).filter((c) => c.cmd !== q);
+    const prefix = all.filter((c) => c.cmd.toLowerCase().startsWith(lq));
+    const inner = lq.length >= 2 ? all.filter((c) => !c.cmd.toLowerCase().startsWith(lq) && c.cmd.toLowerCase().includes(lq)) : [];
+    return [...prefix, ...inner].slice(0, 8);
+  },
+
+  refresh(pane) {
+    if (pane !== active) return;
+    const line = pane.line;
+    const q = line.text;
+    if (!this.enabled() || !pane.connected || line.dirty || !q.trim() || q === this.dismissed
+      || pane.term.buffer.active.type !== 'normal') {
+      if (this.pane === pane) this.hide();
+      if (!q) this.dismissed = null;
+      return;
+    }
+    this.dismissed = null;
+    const items = this.match(pane, q);
+    if (!items.length) { if (this.pane === pane) this.hide(); return; }
+    const prev = this.items[this.index]?.cmd;
+    this.pane = pane;
+    this.items = items;
+    const keep = items.findIndex((x) => x.cmd === prev);
+    this.index = keep >= 0 ? keep : 0;
+    this.render(q);
+    this.place(pane);
+  },
+
+  render(q) {
+    const el = this.ensure();
+    const lq = q.toLowerCase();
+    el.querySelector('.sg-list').innerHTML = this.items.map((it, i) => {
+      const at = it.cmd.toLowerCase().indexOf(lq);
+      const text = at >= 0
+        ? `${esc(it.cmd.slice(0, at))}<b>${esc(it.cmd.slice(at, at + q.length))}</b>${esc(it.cmd.slice(at + q.length))}`
+        : esc(it.cmd);
+      return `<div class="sg-item ${i === this.index ? 'on' : ''}" data-i="${i}" role="option">
+        <span class="sg-ic">${icon(it.kind === 's' ? 'bolt' : 'refresh')}</span><span class="sg-cmd">${text}</span></div>`;
+    }).join('');
+    el.classList.remove('hidden');
+  },
+
+  // İmlecin hemen altına (sığmazsa üstüne) yerleştir
+  place(pane) {
+    const el = this.el;
+    const screen = pane.el.querySelector('.xterm-screen');
+    if (!screen) return;
+    const r = screen.getBoundingClientRect();
+    const term = pane.term;
+    const cw = r.width / term.cols;
+    const ch = r.height / term.rows;
+    const b = term.buffer.active;
+    const promptX = r.left + Math.max(0, b.cursorX - pane.line.text.length) * cw;
+    let x = Math.min(promptX, window.innerWidth - el.offsetWidth - 8);
+    let y = r.top + (b.cursorY + 1) * ch + 2;
+    if (y + el.offsetHeight > window.innerHeight - 6) y = r.top + b.cursorY * ch - el.offsetHeight - 2;
+    el.style.left = Math.max(4, x) + 'px';
+    el.style.top = Math.max(4, y) + 'px';
+  },
+
+  move(delta) {
+    this.index = (this.index + delta + this.items.length) % this.items.length;
+    this.el.querySelectorAll('.sg-item').forEach((x, i) => x.classList.toggle('on', i === this.index));
+    this.el.querySelector('.sg-item.on')?.scrollIntoView({ block: 'nearest' });
+  },
+
+  // Seçili komutu yaz: satır komutun başıysa yalnız kalan kısım, değilse satır Ctrl+U ile silinip tamamı
+  accept(pane, i = this.index) {
+    const it = this.items[i];
+    if (!it) return;
+    const cur = pane.line.text;
+    const text = it.cmd.startsWith(cur) ? it.cmd.slice(cur.length) : '\x15' + it.cmd;
+    this.hide();
+    pane.send(text);
+    this.dismissed = pane.line.text; // yazılan komut için liste hemen yeniden açılmasın
+    pane.term.focus();
+  },
+
+  // Terminalin tuş işleyicisinden çağrılır; false dönerse tuş kabuğa gitmez
+  handleKey(pane, e) {
+    if (!this.visibleFor(pane)) return true;
+    if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key === 'Enter') { e.preventDefault(); this.accept(pane); return false; }
+    if (e.ctrlKey && !e.shiftKey && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+      e.preventDefault();
+      this.move(e.key === 'ArrowDown' ? 1 : -1);
+      return false;
+    }
+    if (e.key === 'Escape') { this.dismissed = pane.line.text; this.hide(); return false; }
+    return true;
+  },
+};
+window.addEventListener('resize', () => Suggest.hide());
+window.addEventListener('blur', () => Suggest.hide());
+api.onHistoryChanged(({ connId, list, all }) => {
+  if (!data.history || all) data.history = {};
+  if (connId) data.history[connId] = list;
+});
+
+// =============================================================================
 // Kısayollar (komut listesi ortak; her bölmenin panelinde gösterilir)
 // =============================================================================
 function insertShortcut(s, pane = active) {
   const text = s.command.replace(/\r?\n/g, '\r') + (s.enter ? '\r' : '');
   const targets = syncInput ? [...panes.values()].filter((p) => p.connected) : pane && pane.connected ? [pane] : [];
   if (!targets.length) { toast(t('err.noConn'), { type: 'err' }); return; }
-  for (const p of targets) api.sshWrite(p.id, text);
+  for (const p of targets) { api.sshWrite(p.id, text); p.line.input(text); }
   pane && pane.term.focus();
 }
 
